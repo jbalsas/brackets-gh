@@ -1,0 +1,11 @@
+{
+    "name": "brackets-gh",
+    "title": "Brackets extension for nodegh.io",
+    "description": "Integrates nodegh.io within Brackets",
+    "homepage": "https://github.com/jbalsas/brackets-gh",
+    "version": "0.0.1",
+    "author": "Chema Balsas <jbalsas@gmail.com> (https://github.com/jbalsas)",
+    "engines": {
+        "brackets": ">=0.31.0"
+    }
+}

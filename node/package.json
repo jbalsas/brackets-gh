@@ -1,0 +1,11 @@
+{
+    "name": "brackets-gh",
+    "version": "0.0.1",
+    "dependencies" : {
+        "gh"        : "1.7.x"
+    },
+    "license": "MIT",
+    "engines": {
+        "node": ">=0.8"
+    }
+}
