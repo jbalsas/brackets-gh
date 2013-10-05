@@ -9,7 +9,8 @@ define(function (require, exports, module) {
         EditorManager       = brackets.getModule("editor/EditorManager"),
         ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
         Menus               = brackets.getModule("command/Menus"),
-        NodeConnection      = brackets.getModule("utils/NodeConnection");
+        NodeConnection      = brackets.getModule("utils/NodeConnection"),
+        ProjectManager      = brackets.getModule("project/ProjectManager");
     
     var SHOW_GH_ISSUES    = "gh_issues_cmd";
     var TARGET_REGEXP   = new RegExp("(<target name=\"(([^\"])*))+", "img");
@@ -70,7 +71,9 @@ define(function (require, exports, module) {
             var path        = ExtensionUtils.getModulePath(module, "node/GHDomain"),
                 loadPromise = nodeConnection.loadDomains([path], true);
 
-            loadPromise.fail(function (error, b) {
+            loadPromise.then(function(){
+                nodeConnection.domains.gh.setPath(ProjectManager.getProjectRoot().fullPath);
+            }).fail(function (error, b) {
                 console.log("[brackets-gh] failed to load gh domain");
                 console.log(error);
             });
@@ -79,6 +82,10 @@ define(function (require, exports, module) {
         }
 
         chain(connect, loadGHDomain);
+        
+        $(ProjectManager).on("projectOpen", function (event, projectRoot) {
+            nodeConnection.domains.gh.setPath(projectRoot.fullPath);
+        });
         
         function _listGHIssues() {
             nodeConnection.domains.gh.listIssues().done(function(data) {
