@@ -125,6 +125,51 @@
     }
     
     /**
+     *
+     */
+    function _cmdCloseIssue(id, cb) {
+        if (arguments.length < 2) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            number: id
+        };
+        
+        _initHelper(cb, options, function(options) {
+            var issues = new Issue(options);
+            
+            issues.close(function(err, result) {
+                cb(null, result);
+            });
+        });
+    }
+            
+    /**
+     *
+     */
+    function _cmdCommentIssue(id, comment, cb) {
+        if (arguments.length < 3) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            comment: comment,
+            number: id
+        };
+        
+        _initHelper(cb, options, function(options) {
+            var issues = new Issue(options);
+            
+            issues.comment(function(err, result) {
+                cb(null, result);
+            });
+        });
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -190,6 +235,50 @@
                 name: "message",
                 type: "string",
                 description: "Message of the issue"
+            }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // 
+        _domainManager.registerCommand(
+            "gh",
+            "closeIssue",
+            _cmdCloseIssue,
+            true,
+            "Closes an existing issue",
+            [{
+                name: "id",
+                type: "number",
+                description: "Id of the issue"
+            }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // 
+        _domainManager.registerCommand(
+            "gh",
+            "commentIssue",
+            _cmdCommentIssue,
+            true,
+            "Closes an existing issue",
+            [{
+                name: "id",
+                type: "number",
+                description: "Id of the issue"
+            },{
+                name: "comment",
+                type: "string",
+                description: "Comment to be added"
             }],
             [{
                 name: "result",

@@ -4,15 +4,16 @@
 define(function (require, exports, module) {
     "use strict";
     
-    var AppInit             = brackets.getModule("utils/AppInit"),
-        CommandManager      = brackets.getModule("command/CommandManager"),
-        EditorManager       = brackets.getModule("editor/EditorManager"),
-        ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
-        Menus               = brackets.getModule("command/Menus"),
-        NodeConnection      = brackets.getModule("utils/NodeConnection"),
-        Dialogs             = brackets.getModule("widgets/Dialogs"),
-        ProjectManager      = brackets.getModule("project/ProjectManager"),
-        NewIssueDialogTemplate = require("text!htmlContent/new-issue-dialog.html");
+    var AppInit                 = brackets.getModule("utils/AppInit"),
+        CommandManager          = brackets.getModule("command/CommandManager"),
+        EditorManager           = brackets.getModule("editor/EditorManager"),
+        ExtensionUtils          = brackets.getModule("utils/ExtensionUtils"),
+        Menus                   = brackets.getModule("command/Menus"),
+        NodeConnection          = brackets.getModule("utils/NodeConnection"),
+        Dialogs                 = brackets.getModule("widgets/Dialogs"),
+        ProjectManager          = brackets.getModule("project/ProjectManager"),
+        NewIssueDialogTemplate  = require("text!htmlContent/new-issue-dialog.html"),
+        ViewIssueDialogTemplate = require("text!htmlContent/view-issue-dialog.html");
     
     var SHOW_GH_ISSUES    = "gh_issues_show";
     var NEW_GH_ISSUE    = "gh_issues_new";
@@ -104,13 +105,15 @@ define(function (require, exports, module) {
             
             nodeConnection.domains.gh.listIssues(state, assignee).done(function(data) {
                 data.issues.forEach(function(issue) {
-                    $row = $("<tr>").append(
+                    $row = $("<tr class='gh-issue'>").append(
                                 $("<td>").html(issue.number)
                             ).append(
                                 $("<td style='font-weight: 500;'>").html(
                                     issue.title + "<a class='pull-right' href='" + issue.html_url + "'>Open in Github</a>" 
                                 )
                             );
+                    
+                    $row.data("issue", issue);
                     $ghResults.append($row);
                 });
             });
@@ -139,6 +142,26 @@ define(function (require, exports, module) {
             $title = dialog.getElement().find("input");
             $message = dialog.getElement().find("textarea");
             $title.focus();
+        }
+        
+        function _viewIssue(issue) {
+            var dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(ViewIssueDialogTemplate, issue)),
+                $dialogBody, $commentButton, $closeButton, $commentBody;
+            
+            console.log(issue);
+            
+            $dialogBody = dialog.getElement();
+            $commentButton = $dialogBody.find(".btn-comment");
+            $closeButton = $dialogBody.find(".btn-close");
+            $commentBody = $dialogBody.find(".comment-body");
+            
+            $closeButton.on("click", function(event) {
+                nodeConnection.domains.gh.closeIssue(issue.number);
+            });
+            
+            $commentButton.on("click", function(event) {
+                nodeConnection.domains.gh.commentIssue(issue.number, $commentBody.val());
+            });
         }
         
         // Register command
@@ -177,6 +200,10 @@ define(function (require, exports, module) {
         $(".issue-state").click(function(event) {
             $(".issue-state").toggleClass("disabled");
             _listGHIssues();
+        });
+        
+        $ghResults.delegate(".gh-issue", "click", function(event) {
+            _viewIssue($(event.currentTarget).data("issue"));
         });
     });
 });
