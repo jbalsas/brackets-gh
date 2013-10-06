@@ -102,6 +102,29 @@
     }
     
     /**
+     *
+     */
+    function _cmdNewIssue(title, message, cb) {
+        if (arguments.length < 3) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            message: message,
+            title: title
+        };
+        
+        _initHelper(cb, options, function(options) {
+            var issues = new Issue(options);
+            
+            issues.new(function(err, result) {
+                cb(null, result);
+            });
+        });
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -144,7 +167,32 @@
                 type: "string",
                 description: "Assigned person"
             }],
-            [{name: "result",
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // 
+        _domainManager.registerCommand(
+            "gh",
+            "newIssue",
+            _cmdNewIssue,
+            true,
+            "Creates a new issue",
+            [{
+                name: "title",
+                type: "string",
+                description: "Title of the new issue"
+            },{
+                name: "message",
+                type: "string",
+                description: "Message of the issue"
+            }],
+            [{
+                name: "result",
                 type: "object",
                 description: "The result of the execution"
             }],

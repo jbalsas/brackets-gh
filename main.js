@@ -1,5 +1,5 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, browser: true */
-/*global $, define, brackets */
+/*global $, define, brackets, Mustache */
 
 define(function (require, exports, module) {
     "use strict";
@@ -10,9 +10,12 @@ define(function (require, exports, module) {
         ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
         Menus               = brackets.getModule("command/Menus"),
         NodeConnection      = brackets.getModule("utils/NodeConnection"),
-        ProjectManager      = brackets.getModule("project/ProjectManager");
+        Dialogs             = brackets.getModule("widgets/Dialogs"),
+        ProjectManager      = brackets.getModule("project/ProjectManager"),
+        NewIssueDialogTemplate = require("text!htmlContent/new-issue-dialog.html");
     
-    var SHOW_GH_ISSUES    = "gh_issues_cmd";
+    var SHOW_GH_ISSUES    = "gh_issues_show";
+    var NEW_GH_ISSUE    = "gh_issues_new";
     var TARGET_REGEXP   = new RegExp("(<target name=\"(([^\"])*))+", "img");
     var nodeConnection;
     
@@ -114,11 +117,35 @@ define(function (require, exports, module) {
         }
         
         CommandManager.register("Github Issues", SHOW_GH_ISSUES, _open);
+        CommandManager.register("New Issue", NEW_GH_ISSUE, _new);
+        
+        function _new() {
+            var dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(NewIssueDialogTemplate, {})),
+                $title, $message;
+            
+            dialog.done(function (id) {
+                if (id === Dialogs.DIALOG_BTN_OK) {
+                    var title = $title.val();
+                    var message = $message.val();
+
+                    nodeConnection.domains.gh.newIssue(title, message).done(function(issue) {
+                        if (issue && issue.html_url) {
+                            _listGHIssues();
+                        }
+                    });
+                }
+            });
+            
+            $title = dialog.getElement().find("input");
+            $message = dialog.getElement().find("textarea");
+            $title.focus();
+        }
         
         // Register command
         var menu = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
         menu.addMenuDivider();
         menu.addMenuItem(SHOW_GH_ISSUES, "", Menus.LAST);
+        menu.addMenuItem(NEW_GH_ISSUE, "", Menus.LAST);
         
         $('.content').append('<div id="gh-issues" class="bottom-panel">'
                             + ' <div class="toolbar simple-toolbar-layout">'
