@@ -1,0 +1,22 @@
+<div class="brackets-gh modal new-issue-dialog">
+    <!-- Header -->
+    <div class="modal-header">
+        <h1 class="dialog-title">New Issue <span class="muted pull-right">{{user}}/{{repo}}</span></h1>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+        <div class="alert alert-error">Oops... an error occurred. Please try again later</div>
+
+        <input class="gh-issue-title" placeholder="Title" type="text" />
+        <textarea class="gh-issue-message" placeholder="Leave a comment" rows="10"></textarea>
+
+        <div class="btn-toolbar pull-right">
+            <button class="btn gh-cancel">Cancel</button>
+            <button class="btn primary gh-create">Create</button>
+        </div>
+        
+        <div class="muted-bg"></div>
+        <div class="spinner large spin"></div>
+    </div>
+</div>

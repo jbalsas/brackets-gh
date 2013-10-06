@@ -1,0 +1,53 @@
+/* Common */
+
+.brackets-gh .loading .spinner {
+    display: block
+}
+
+.brackets-gh .spinner {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    bottom: 50%;
+    left: 50%;
+}
+
+.brackets-gh .loading .muted-bg {
+    display: block;
+}
+
+.brackets-gh .muted-bg {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    height: 100%;
+    width: 100%;
+    bottom: 0;
+    left: 0;
+    background-color: #999;
+    opacity: 0.3;
+}
+
+/* Dialogs and Panels */
+
+/* List Panel */
+.gh-issues-wrapper {
+    position: relative;
+}
+
+/* New Issue */
+.new-issue-dialog input, .new-issue-dialog textarea {
+    resize: none;
+    width: 98%;
+}
+
+.new-issue-dialog .error .alert.alert-error {
+    display: block;
+}
+
+.new-issue-dialog .alert.alert-error {
+    display: none;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+    color: #b94a48;
+}
