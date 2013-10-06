@@ -87,10 +87,19 @@ define(function (require, exports, module) {
             nodeConnection.domains.gh.setPath(projectRoot.fullPath);
         });
         
+        function _open() {
+            _listGHIssues();
+            _handleToggleGHStatus();
+        }
+        
         function _listGHIssues() {
-            nodeConnection.domains.gh.listIssues().done(function(data) {
-                var $row;
-
+            var $row,
+                state = $ghPanel.find(".issue-state.disabled").data("state"),
+                assignee = $ghPanel.find('.assignee')[0].selectedIndex == 1;
+            
+            $ghResults.find("tr:gt(0)").remove();
+            
+            nodeConnection.domains.gh.listIssues(state, assignee).done(function(data) {
                 data.issues.forEach(function(issue) {
                     $row = $("<tr>").append(
                                 $("<td>").html(issue.number)
@@ -102,11 +111,9 @@ define(function (require, exports, module) {
                     $ghResults.append($row);
                 });
             });
-            
-            _handleToggleGHStatus();
         }
         
-        CommandManager.register("Github Issues", SHOW_GH_ISSUES, _listGHIssues);
+        CommandManager.register("Github Issues", SHOW_GH_ISSUES, _open);
         
         // Register command
         var menu = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
@@ -116,6 +123,14 @@ define(function (require, exports, module) {
         $('.content').append('<div id="gh-issues" class="bottom-panel">'
                             + ' <div class="toolbar simple-toolbar-layout">'
                             + '     <div class="title">GH ISSUES</div>'
+                            + '     <button class="btn btn-mini issue-state disabled" data-state="open">Open</button>'
+                            + '     <button class="btn btn-mini issue-state" data-state="closed">Closed</button>'
+                            + '     <select class="assignee">'
+                            + '         <option>Everyone\'s Issues</option>'
+                            + '         <option>Assigned to you</option>'
+                            + '         <option disabled="disabled">Created by you</option>'
+                            + '         <option disabled="disabled">Mentioning you</option>'
+                            + '     </select>'
                             + '     <a href="#" class="close">&times;</a>'
                             + ' </div>'
                             + ' <div class="table-container">'
@@ -128,5 +143,13 @@ define(function (require, exports, module) {
         $ghPanel      = $("#gh-issues");
         $ghResults    = $("#gh-results");
         
+        $(".assignee").change(function(event) {
+            _listGHIssues();
+        });
+        
+        $(".issue-state").click(function(event) {
+            $(".issue-state").toggleClass("disabled");
+            _listGHIssues();
+        });
     });
 });

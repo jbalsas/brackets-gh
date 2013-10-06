@@ -6,7 +6,7 @@
     var async       = require("async"),
         base        = require("gh/lib/base"),
         git         = require("gh/lib/git"),
-        issueImpl   = require("gh/lib/cmds/issue").Impl,
+        Issue       = require("gh/lib/cmds/issue").Impl,
         User        = require("gh/lib/cmds/user").Impl;
 
     var _domainManager = null;
@@ -26,8 +26,6 @@
         if (!_path) {
             cb("Path has not been initialized!");
         }
-        
-        console.log(_path);
         
         process.chdir(_path);        
         
@@ -75,16 +73,29 @@
      * Lists issues
      * @param cb
      */
-    function _cmdListIssues(cb) {
+    function _cmdListIssues(state, assignee, cb) {
+        if (arguments.length == 1) {
+            cb = arguments[0];
+            state = Issue.STATE_OPEN;
+        } else if (arguments.length == 2) {
+            cb = arguments[1];
+            assignee = false;
+        }
+
         var issues,
-            options = { all: true, state: "open" };
+            options = {
+                all: true,
+                state: state
+            };
 
         _initHelper(cb, options, function(options) {
-            issues = new issueImpl(options);
+            if (assignee) {
+                options.assignee = options.loggedUser;
+            }
             
-            console.log(options);
+            issues = new Issue(options);
             
-           issues.list(options.remoteUser, options.repo, function(err, result) {
+            issues.list(options.remoteUser, options.repo, function(err, result) {
                 cb(null, result);
             });
         });
@@ -128,6 +139,10 @@
                 name: "state",
                 type: "string",
                 description: "State of issues to list"
+            },{
+                name: "assignee",
+                type: "string",
+                description: "Assigned person"
             }],
             [{name: "result",
                 type: "object",
