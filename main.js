@@ -17,7 +17,7 @@ define(function (require, exports, module) {
         IssueTableRowTPL    = require("text!htmlContent/issue-table-row.html"),
         ViewIssueDialogTemplate = require("text!htmlContent/view-issue-dialog.html");
     
-    require("third_party/moment");
+    var moment = require("third_party/moment");
     
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";

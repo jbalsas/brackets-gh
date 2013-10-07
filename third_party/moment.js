@@ -4,7 +4,7 @@
 //! license : MIT
 //! momentjs.com
 
-(function (undefined) {
+define(function (require, exports, module) {
 
     /************************************
         Constants
@@ -2271,9 +2271,7 @@
         }
     }
 
-    makeGlobal();
     // CommonJS module is defined
-    /*
     if (hasModule) {
         module.exports = moment;
         makeGlobal();
@@ -2288,5 +2286,4 @@
     } else {
         makeGlobal();
     }
-    */
-}).call(this);
+});
