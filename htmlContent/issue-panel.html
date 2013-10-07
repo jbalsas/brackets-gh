@@ -1,21 +1,19 @@
 <div class="bottom-panel brackets-gh gh-issue-panel">
     <div class="gh-issues-wrapper">
         <div class="toolbar simple-toolbar-layout">
-            <div class="title">GH ISSUES</div>
+            <div class="title">ISSUES on <span class="repo">{{user}}/{{repo}}</span></div>
+            <div class="gh-issue-state">
                 <button class="btn btn-mini disabled issue-state" data-state="open">Open</button>
                 <button class="btn btn-mini issue-state" data-state="closed">Closed</button>
-                <select class="assignee">
-                    <option>Everyone's Issues</option>
-                    <option>Assigned to you</option>
-                    <option disabled>Created by you</option>
-                    <option disabled>Mentioning you</option>
-                </select>
+            </div>
+            <div class="gh-issue-assignee">
+                <button class="btn btn-mini disabled issue-assignee">Everyone's Issues</button>
+                <button class="btn btn-mini issue-assignee" data-assignee="own">Assigned to you</button>
+            </div>
             <a href="#" class="close">&times;</a>
         </div>
         <div class="table-container">
-            <table class="table table-striped gh-issues-list">
-                <tr><th>#</th><th>Title</th></tr>
-            </table>
+            <table class="table table-striped gh-issues-list"></table>
         </div>
         
         <div class="muted-bg"></div>

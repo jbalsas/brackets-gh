@@ -31,8 +31,55 @@
 /* Dialogs and Panels */
 
 /* List Panel */
-.gh-issues-wrapper {
+.gh-issues-wrapper, .issue-details {
     position: relative;
+}
+
+.gh-issues-list td:first-child {
+    width: 15px;
+}
+
+.gh-issues-list .issue-title {
+    color: #454545;
+    font-weight: 500;
+}
+
+.gh-issues-list .issue-creation {
+    color: #777;
+}
+
+.gh-issues-wrapper .repo {
+    color: #0083e8;
+    font-weight: 400;
+}
+
+.issue-link {
+    display: none;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    color: #333;
+}
+
+.gh-issue:hover .issue-link {
+    display: block;
+    text-decoration: none;
+}
+
+.gh-issue-state {
+    position: absolute;
+    right: 240px;
+    top: 15%;
+}
+
+.gh-issue-assignee {
+    position: absolute;
+    right: 40px;
+    top: 15%;
+}
+
+.gh-issue-state .btn:first-child, .gh-issue-assignee .btn:first-child {
+    margin-right: -5px;
 }
 
 /* New Issue */

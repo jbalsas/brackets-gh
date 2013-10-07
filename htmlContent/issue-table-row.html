@@ -1,4 +1,8 @@
 <tr class="gh-issue">
-    <td class="gh-issue-number">{{number}}</td>
-    <td class="gh-issue-title">{{title}}<a class="pull-right" href="{{html_url}}">Open in Github</a></td>
+    <td class="issue-number">{{issue.number}}</td>
+    <td class="issue-details">
+        <div class="issue-title">{{issue.title}}</div>
+        <div class="issue-creation">Opened by <a href="{{issue.user.html_url}}">{{issue.user.login}}</a> {{issue.created_at}}</div>
+        <a class="issue-link" href="{{issue.html_url}}"><i class="icon-large icon-github"></i></a>
+    </td>
 </tr>

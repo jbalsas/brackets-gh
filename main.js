@@ -17,6 +17,8 @@ define(function (require, exports, module) {
         IssueTableRowTPL    = require("text!htmlContent/issue-table-row.html"),
         ViewIssueDialogTemplate = require("text!htmlContent/view-issue-dialog.html");
     
+    require("third_party/moment");
+    
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
 
@@ -36,6 +38,8 @@ define(function (require, exports, module) {
      var $issuesPanel,
          $issuesWrapper,
          $issuesList;
+    
+    var githubLogo = ExtensionUtils.getModulePath(module, "img/github.png");
     
     // Helper function that chains a series of promise-returning
     // functions together via their done callbacks.
@@ -126,14 +130,22 @@ define(function (require, exports, module) {
     // Retrieves the list of issues for the repo
     function _listIssues() {
         var state       = $issuesPanel.find(".issue-state.disabled").data("state"),
-            assignee    = $issuesPanel.find('.assignee')[0].selectedIndex == 1;
+            assignee    = $issuesPanel.find(".issue-assignee.disabled").data("assignee") == "own";
         
         $issuesWrapper.addClass("loading");
-        $issuesList.find("tr:gt(0)").remove();
+        $issuesList.empty();
 
         gh.listIssues(state, assignee).done(function(data) {
             data.issues.forEach(function(issue) {
-                var $row = $(Mustache.render(IssueTableRowTPL, issue));
+
+                issue.created_at = moment(issue.created_at).fromNow();
+                
+                var data = {
+                    githubLogo: githubLogo,
+                    issue: issue
+                }
+
+                var $row = $(Mustache.render(IssueTableRowTPL, data));
                 
                 $row.data("issue", issue);
                 
@@ -146,7 +158,7 @@ define(function (require, exports, module) {
     
     // Initializes and and binds the events on the Issues Panel
     function _initializeIssuesPanel() {
-        var $content    = $(".content").append(IssuePanelTPL);
+        var $content    = $(".content").append(Mustache.render(IssuePanelTPL, ghRepoInfo));
             
         $issuesPanel    = $content.find(".gh-issue-panel");
         $issuesWrapper  = $issuesPanel.find(".gh-issues-wrapper");
@@ -167,10 +179,24 @@ define(function (require, exports, module) {
             }
         });
         
-        $issuesWrapper.find(".assignee").on("change", function(event) {
-            if (!$issuesWrapper.hasClass("loading")) {
+        $issuesWrapper.delegate(".btn.issue-assignee", "click", function(event) {
+            var $target = $(event.currentTarget);
+            
+            if (!$issuesWrapper.hasClass("loading") && !$target.hasClass("disabled")) {
+                $issuesWrapper.find(".btn.issue-assignee").toggleClass("disabled");
                 _listIssues();
             }
+        });
+    }
+    
+    //
+    function _initializeUI() {
+        // Load de CSS styles and initialize the HTML content
+        ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
+            _initializeIssuesPanel();
+        });
+        
+        ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css").done(function () {
         });
     }
     
@@ -199,6 +225,7 @@ define(function (require, exports, module) {
                 gh = nodeConnection.domains.gh;
                 gh.setPath(projectPath).done(function(repoInfo) {
                     ghRepoInfo = repoInfo;
+                    _initializeUI();
                 });
             }).fail(function (error) {
                 console.log("[brackets-gh] failed to load gh domain");
@@ -222,10 +249,5 @@ define(function (require, exports, module) {
         menu.addMenuDivider();
         menu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
         menu.addMenuItem(CMD_GH_ISSUES_NEW, "", Menus.LAST);
-        
-        // Load de CSS styles and initialize the HTML content
-        ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
-            _initializeIssuesPanel();
-        });
     });
 });
