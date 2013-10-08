@@ -127,7 +127,8 @@
     color: #b94a48;
 }
 
-.view-issue-dialog .issue-title, .view-issue-dialog.issue-creation {
+.view-issue-dialog .issue-title, .view-issue-dialog .issue-creation {
+    padding-left: 45px;
     padding-right: 45px;
 }
 
