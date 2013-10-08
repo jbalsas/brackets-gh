@@ -9,6 +9,7 @@
     "brackets": ">=0.31.0"
   },
   "dependencies": {
-    "moment": "~2.3.0"
+    "moment": "~2.3.0",
+    "marked": "~0.2.9"
   }
 }

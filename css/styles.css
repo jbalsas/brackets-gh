@@ -28,6 +28,15 @@
     opacity: 0.3;
 }
 
+.brackets-gh .issue-title {
+    color: #454545;
+    font-weight: 500;
+}
+
+.brackets-gh .issue-creation {
+    color: #777;
+}
+
 /* Dialogs and Panels */
 
 /* List Panel */
@@ -37,15 +46,6 @@
 
 .gh-issues-list td:first-child {
     width: 15px;
-}
-
-.gh-issues-list .issue-title {
-    color: #454545;
-    font-weight: 500;
-}
-
-.gh-issues-list .issue-creation {
-    color: #777;
 }
 
 .gh-issues-wrapper .repo {
@@ -97,4 +97,68 @@
     background-color: #f2dede;
     border-color: #eed3d7;
     color: #b94a48;
+}
+
+/* View Issue */
+
+.view-issue-dialog .modal-header .user-avatar {
+    float: left;
+    margin-right: 10px;
+    width: 35px;
+}
+
+.view-issue-dialog .modal-body {
+    position: relative;
+    height: 400px;
+}
+
+.view-issue-dialog .issue-state {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    font-size: 16px;
+    line-height: 21px;
+    text-transform: capitalize;
+}
+
+.view-issue-dialog .label.label-error {
+    background-color: #f2dede;
+    border-color: #eed3d7;
+    color: #b94a48;
+}
+
+.view-issue-dialog .issue-title, .view-issue-dialog.issue-creation {
+    padding-right: 45px;
+}
+
+.view-issue-dialog .issue-participants {
+    margin-bottom: 10px;
+    margin-top: -10px;
+}
+
+.view-issue-dialog .participants-avatars {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.view-issue-dialog .participants-avatars img {
+    width: 30px;
+}
+
+.view-issue-dialog .issue-conversation .user-info img {
+    width: 30px;
+}
+
+.view-issue-dialog .issue-conversation .user-info .comment-creation {
+    float: right;
+    text-align: right;
+}
+
+.view-issue-dialog .issue-conversation .user-info {
+    border-bottom: solid 1px #ccc;
+    padding-bottom: 10px;
+}
+
+.view-issue-dialog .issue-conversation .comment-body {
+    margin-top: 10px;
 }

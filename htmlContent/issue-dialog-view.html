@@ -1,0 +1,22 @@
+<div class="brackets-gh view-issue-dialog modal">
+    <div class="modal-header">
+        <div class="user-avatar">
+            <img class="img-circle" src="{{user.avatar_url}}" />
+        </div>
+        <div class="issue-title">{{title}}</div>
+        <div class="issue-creation"><strong><a href="{{user.html_url}}">{{user.login}}</a></strong> opened this issue {{created_at}}</div>
+        <span class="issue-state label label-{{state_class}}">{{state}}</span>
+    </div>
+    <div class="modal-body loading">
+        <div class="issue-body well">
+            {{{body}}}
+        </div>
+        <div class="issue-participants">
+        </div>
+        <div class="issue-conversation">
+        </div>
+        
+        <div class="muted-bg"></div>
+        <div class="spinner large spin"></div>
+    </div>
+</div>

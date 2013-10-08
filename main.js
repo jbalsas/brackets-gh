@@ -12,12 +12,15 @@ define(function (require, exports, module) {
         ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
         NodeConnection      = brackets.getModule("utils/NodeConnection"),
         Dialogs             = brackets.getModule("widgets/Dialogs"),
+        IssueCommentTPL     = require("text!htmlContent/issue-comment.html"),
         IssueDialogNewTPL   = require("text!htmlContent/issue-dialog-new.html"),
+        IssueDialogViewTPL  = require("text!htmlContent/issue-dialog-view.html"),
         IssuePanelTPL       = require("text!htmlContent/issue-panel.html"),
-        IssueTableRowTPL    = require("text!htmlContent/issue-table-row.html"),
-        ViewIssueDialogTemplate = require("text!htmlContent/view-issue-dialog.html");
+        IssueParticipantsTPL= require("text!htmlContent/issue-participants.html"),
+        IssueTableRowTPL    = require("text!htmlContent/issue-table-row.html");
     
-    var moment = require("third_party/moment");
+    var marked  = require("third_party/marked"),
+        moment  = require("third_party/moment");
     
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
@@ -108,7 +111,44 @@ define(function (require, exports, module) {
     
     // Open the detailed issue dialog
     function _viewIssue(issue) {
-        var dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(ViewIssueDialogTemplate, issue)),
+        
+        issue.state_class = issue.state === "open" ? "success" : "error";
+        issue.body = marked(issue.body);
+
+        var dialog = Dialogs.showModalDialogUsingTemplate(
+            Mustache.render(IssueDialogViewTPL, issue)
+        );
+
+        gh.getComments(issue.number).done(function(result) {
+            var $conversation       = dialog.getElement().find(".issue-conversation"),
+                $participants       = dialog.getElement().find(".issue-participants"),
+                participantsList    = [],
+                participantsMap     = {};
+                        
+            result.forEach(function(comment) {
+                participantsMap[comment.user.login] = comment.user;
+                
+                comment.created_at = moment(comment.created_at).fromNow();
+                comment.body = marked(comment.body);
+                
+                $conversation.append(Mustache.render(IssueCommentTPL, comment));
+            });
+            
+            participantsMap[issue.user.login] = issue.user;
+            
+            participantsList = $.map(participantsMap, function(participant) {
+                return participant.avatar_url;
+            });
+            
+            $participants.append(Mustache.render(IssueParticipantsTPL, {participants: participantsList} ));
+
+            dialog.getElement().find(".modal-body").removeClass("loading");
+        }).fail(function(err) {
+            console.log(err);
+        });
+
+        /*
+        var dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(IssueDialogViewTPL, issue)),
             $dialogBody, $commentButton, $closeButton, $commentBody;
         
         console.log(issue);
@@ -125,6 +165,7 @@ define(function (require, exports, module) {
         $commentButton.on("click", function(event) {
             nodeConnection.domains.gh.commentIssue(issue.number, $commentBody.val());
         });
+        */
     }
     
     // Retrieves the list of issues for the repo
@@ -165,7 +206,7 @@ define(function (require, exports, module) {
         $issuesList     = $issuesPanel.find(".gh-issues-list");
         
         $issuesList.delegate("tr.gh-issue", "click", function(event) {
-            console.log($(event.currentTarget).data("issue"));
+           _viewIssue($(event.currentTarget).data("issue"));
         });
         
         $issuesWrapper.find(".close").on("click", _togglePanel);

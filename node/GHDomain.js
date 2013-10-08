@@ -200,6 +200,34 @@
     }
     
     /**
+     * Gets an issue comments
+     * @param {number} number Number of the issue in the repository
+     * @param {Function} cb Callback function to notify initialization errors
+     */
+    function _cmdGetComments(number, cb) {
+        
+        // Normalize arguments
+        if (arguments.length < 2) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            number: number
+        };
+        
+        _initHelper(cb, options, function(options) {
+            base.github.issues.getComments({
+                number: options.number,
+                repo: options.repo,
+                user: options.user
+            }, function (err, result) {
+                cb(err, result);
+            });
+        });
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -313,6 +341,26 @@
                 name: "comment",
                 type: "string",
                 description: "Comment on the new issue"
+            }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // Comments on an issue
+        _domainManager.registerCommand(
+            "gh",
+            "getComments",
+            _cmdGetComments,
+            true,
+            "Gets an issue comments",
+            [{
+                name: "number",
+                type: "number",
+                description: "Number of the issue in the repository"
             }],
             [{
                 name: "result",
