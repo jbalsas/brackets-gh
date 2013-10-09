@@ -13,6 +13,7 @@ define(function (require, exports, module) {
         NodeConnection      = brackets.getModule("utils/NodeConnection"),
         Dialogs             = brackets.getModule("widgets/Dialogs"),
         IssueCommentTPL     = require("text!htmlContent/issue-comment.html"),
+        IssueCommentInputTPL= require("text!htmlContent/issue-comment-input.html"),
         IssueDialogNewTPL   = require("text!htmlContent/issue-dialog-new.html"),
         IssueDialogViewTPL  = require("text!htmlContent/issue-dialog-view.html"),
         IssuePanelTPL       = require("text!htmlContent/issue-panel.html"),
@@ -120,8 +121,10 @@ define(function (require, exports, module) {
         );
 
         gh.getComments(issue.number).done(function(result) {
-            var $conversation       = dialog.getElement().find(".issue-conversation"),
-                $participants       = dialog.getElement().find(".issue-participants"),
+            var $dialogBody         = dialog.getElement(),
+                $conversation       = $dialogBody.find(".issue-conversation"),
+                $participants       = $dialogBody.find(".issue-participants"),
+                $commentInputPanel  = $dialogBody.find(".issue-comment-input"),
                 participantsList    = [],
                 participantsMap     = {};
                         
@@ -142,6 +145,15 @@ define(function (require, exports, module) {
             
             $participants.append(Mustache.render(IssueParticipantsTPL, {participants: participantsList} ));
 
+            $commentInputPanel.append(Mustache.render(IssueCommentInputTPL, {}));
+            
+            $commentInputPanel.find('a[data-action="preview"]').on('shown', function (e) {
+                var $commentInput   = $commentInputPanel.find(".comment-body"),
+                    $commentPreview = $commentInputPanel.find(".comment-preview");
+
+                $commentPreview.html(marked($commentInput.val()));
+            });
+            
             dialog.getElement().find(".modal-body").removeClass("loading");
         }).fail(function(err) {
             console.log(err);

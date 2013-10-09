@@ -163,3 +163,24 @@
 .view-issue-dialog .issue-conversation .comment-body {
     margin-top: 10px;
 }
+
+.view-issue-dialog .issue-comment-input .nav .active a {
+    background-color: #f7f7f7;
+}
+
+.view-issue-dialog .issue-comment-input .comment-body {
+    background-color: #fefefe;
+    border: solid 1px #ddd;
+    margin-left: 1px;
+    margin-top: 10px;
+    resize: none;
+    width: 97%;
+}
+
+.view-issue-dialog .issue-comment-input .comment-preview {
+    background-color: #fefefe;
+    border: solid 1px #ccc;
+    border-radius 6px;
+    margin-top: 10px;
+    padding: 10px;
+}
