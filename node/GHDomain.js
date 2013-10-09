@@ -170,6 +170,32 @@
             });
         });
     }
+    
+    /**
+     * Reopens a closed issue
+     * @param {number} number Number of the issue in the repository
+     * @param {Function} cb Callback function to notify initialization errors
+     */
+    function _cmdReopenIssue(number, cb) {
+        
+        // Normalize parameters
+        if (arguments.length < 2) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            number: number
+        };
+                
+        _initHelper(cb, options, function(options) {
+            var issues = new Issue(options);
+            
+            issues.open(function(err, result) {
+                cb(err, result);
+            });
+        });
+    }
             
     /**
      * Comments on an issue
@@ -313,6 +339,26 @@
             _cmdCloseIssue,
             true,
             "Closes an existing issue",
+            [{
+                name: "number",
+                type: "number",
+                description: "Number of the issue in the repository"
+            }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // Creates a new issue
+        _domainManager.registerCommand(
+            "gh",
+            "reopenIssue",
+            _cmdReopenIssue,
+            true,
+            "Reopens a closed issue",
             [{
                 name: "number",
                 type: "number",

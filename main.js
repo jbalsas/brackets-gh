@@ -180,32 +180,41 @@ define(function (require, exports, module) {
                     });
             });
             
+            $commentInputPanel.find(".btn-close").on("click", function(event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.closeIssue(issue.number).done(function(data) {
+                    console.log(data);
+                    
+                    $dialog.removeClass("state-open").addClass("state-closed");
+                    $dialogBody.removeClass("loading");
+                })
+                .fail(function(err) {
+                    console.log("ERR: " + err);
+                });
+            });
+            
+            $commentInputPanel.find(".btn-reopen").on("click", function(event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.reopenIssue(issue.number).done(function(data) {
+                    console.log(data);
+                    
+                    $dialog.removeClass("state-closed").addClass("state-open");
+                    $dialogBody.removeClass("loading");
+                })
+                .fail(function(err) {
+                    console.log("ERR: ");
+                    console.log(err);
+                });
+            });
+
             $dialogBody.removeClass("loading");
         }).fail(function(err) {
             console.log(err);
             
             $dialogBody.removeClass("loading");
         });
-
-        /*
-        var dialog = Dialogs.showModalDialogUsingTemplate(Mustache.render(IssueDialogViewTPL, issue)),
-            $dialogBody, $commentButton, $closeButton, $commentBody;
-        
-        console.log(issue);
-        
-        $dialogBody = dialog.getElement();
-        $commentButton = $dialogBody.find(".btn-comment");
-        $closeButton = $dialogBody.find(".btn-close");
-        $commentBody = $dialogBody.find(".comment-body");
-        
-        $closeButton.on("click", function(event) {
-            nodeConnection.domains.gh.closeIssue(issue.number);
-        });
-        
-        $commentButton.on("click", function(event) {
-            nodeConnection.domains.gh.commentIssue(issue.number, $commentBody.val());
-        });
-        */
     }
     
     // Retrieves the list of issues for the repo

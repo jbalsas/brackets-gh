@@ -123,7 +123,10 @@
     top: 15px;
     font-size: 16px;
     line-height: 21px;
-    text-transform: capitalize;
+}
+
+.view-issue-dialog.state-closed .issue-state.label-success, .view-issue-dialog.state-open .issue-state.label-error {
+    display: none;
 }
 
 .view-issue-dialog .label.label-error {
@@ -197,4 +200,8 @@
 
 .view-issue-dialog .issue-comment-input .btn-success {
     margin-left: 10px;
+}
+
+.view-issue-dialog.state-open .btn-reopen, .view-issue-dialog.state-closed .btn-close {
+    display: none;
 }
