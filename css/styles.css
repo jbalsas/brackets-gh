@@ -108,8 +108,13 @@
 }
 
 .view-issue-dialog .modal-body {
+    padding-top: 0;
     position: relative;
     height: 400px;
+}
+
+.view-issue-dialog .issue-body {
+    margin-top: -5px;
 }
 
 .view-issue-dialog .issue-state {
