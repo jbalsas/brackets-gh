@@ -121,10 +121,11 @@ define(function (require, exports, module) {
         );
 
         gh.getComments(issue.number).done(function(result) {
-            var $dialogBody         = dialog.getElement(),
-                $conversation       = $dialogBody.find(".issue-conversation"),
-                $participants       = $dialogBody.find(".issue-participants"),
-                $commentInputPanel  = $dialogBody.find(".issue-comment-input"),
+            var $dialog             = dialog.getElement(),
+                $dialogBody         = $dialog.find(".modal-body"),
+                $conversation       = $dialog.find(".issue-conversation"),
+                $participants       = $dialog.find(".issue-participants"),
+                $commentInputPanel  = $dialog.find(".issue-comment-input"),
                 participantsList    = [],
                 participantsMap     = {};
                         
@@ -147,16 +148,43 @@ define(function (require, exports, module) {
 
             $commentInputPanel.append(Mustache.render(IssueCommentInputTPL, {}));
             
-            $commentInputPanel.find('a[data-action="preview"]').on('shown', function (e) {
-                var $commentInput   = $commentInputPanel.find(".comment-body"),
-                    $commentPreview = $commentInputPanel.find(".comment-preview");
+            var $commentInput   = $commentInputPanel.find(".comment-body"),
+                $commentPreview = $commentInputPanel.find(".comment-preview");
 
+            $commentInputPanel.find('a[data-action="preview"]').on("shown", function (event) {
                 $commentPreview.html(marked($commentInput.val()));
             });
             
-            dialog.getElement().find(".modal-body").removeClass("loading");
+            $commentInputPanel.find(".btn-success").on("click", function(event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.commentIssue(issue.number, $commentInput.val())
+                    .done(function(comment) {
+                        // Append the new comment
+                        comment.created_at = moment(comment.created_at).fromNow();
+                        comment.body = marked(comment.body);
+                
+                        $conversation.append(Mustache.render(IssueCommentTPL, comment));
+                        
+                        // Empty the input and select the Write tab
+                        $commentInput.val("");
+                        
+                        if ($commentInputPanel.find(".nav-tabs li.active a").data("action") === "preview") {
+                            $commentInputPanel.find(".nav-tabs li:first-child a").tab("show")
+                        }
+                        
+                        $dialogBody.removeClass("loading");
+                    })
+                    .fail(function(err) {
+                        console.log("ERR: " + err);
+                    });
+            });
+            
+            $dialogBody.removeClass("loading");
         }).fail(function(err) {
             console.log(err);
+            
+            $dialogBody.removeClass("loading");
         });
 
         /*
