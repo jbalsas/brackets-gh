@@ -1,4 +1,4 @@
-/*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, node: true */
+/*jslint es5: true, vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, node: true */
 /*global brackets */
 (function () {
     "use strict";
@@ -33,29 +33,28 @@
         }
         
         // Set ourselves on the project path so all gh operations have proper context
-        process.chdir(_path);        
+        process.chdir(_path);
         
         operations.push(User.login);
         
-        operations.push(function(callback) {
+        operations.push(function (callback) {
             git.getUser(options.remote, callback);
         });
     
-        operations.push(function(callback) {
+        operations.push(function (callback) {
             git.getRepo(options.remote, callback);
         });
     
         operations.push(git.getCurrentBranch);
         
-        async.series(operations, function(err, results) {
+        async.series(operations, function (err, results) {
             options.loggedUser = base.getUser();
             options.remoteUser = results[1];
     
             if (!options.user) {
                 if (options.repo || options.all) {
                     options.user = options.loggedUser;
-                }
-                else {
+                } else {
                     options.user = options.remoteUser || options.loggedUser;
                 }
             }
@@ -77,7 +76,7 @@
     function _cmdSetPath(path, cb) {
         _path = path;
         
-        _initHelper(cb, {}, function(options) {
+        _initHelper(cb, {}, function (options) {
             cb(null, options);
         });
     }
@@ -91,11 +90,11 @@
     function _cmdListIssues(state, assignee, cb) {
 
         // Normalize parameters
-        if (arguments.length == 1) {
-            cb = arguments[0];
+        if (arguments.length === 1) {
+            cb = state;
             state = Issue.STATE_OPEN;
-        } else if (arguments.length == 2) {
-            cb = arguments[1];
+        } else if (arguments.length === 2) {
+            cb = assignee;
             assignee = false;
         }
 
@@ -104,14 +103,14 @@
                 state: state
             };
 
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             if (assignee) {
                 options.assignee = options.loggedUser;
             }
             
             var issues = new Issue(options);
             
-            issues.list(options.remoteUser, options.repo, function(err, result) {
+            issues.list(options.remoteUser, options.repo, function (err, result) {
                 cb(err, result);
             });
         });
@@ -136,10 +135,10 @@
             title: title
         };
         
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             var issues = new Issue(options);
             
-            issues.new(function(err, result) {
+            issues.new(function (err, result) {
                 cb(err, result);
             });
         });
@@ -162,10 +161,10 @@
             number: number
         };
         
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             var issues = new Issue(options);
             
-            issues.close(function(err, result) {
+            issues.close(function (err, result) {
                 cb(err, result);
             });
         });
@@ -188,10 +187,10 @@
             number: number
         };
                 
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             var issues = new Issue(options);
             
-            issues.open(function(err, result) {
+            issues.open(function (err, result) {
                 cb(err, result);
             });
         });
@@ -216,10 +215,10 @@
             number: number
         };
         
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             var issues = new Issue(options);
             
-            issues.comment(function(err, result) {
+            issues.comment(function (err, result) {
                 cb(err, result);
             });
         });
@@ -242,7 +241,7 @@
             number: number
         };
         
-        _initHelper(cb, options, function(options) {
+        _initHelper(cb, options, function (options) {
             base.github.issues.getComments({
                 number: options.number,
                 repo: options.repo,
@@ -295,7 +294,7 @@
                 name: "state",
                 type: "string",
                 description: "State of the issue. Can be 'open' or 'closed'"
-            },{
+            }, {
                 name: "assignee",
                 type: "string",
                 description: "User assigned to the issue"
@@ -319,7 +318,7 @@
                 name: "title",
                 type: "string",
                 description: "Title of the new issue"
-            },{
+            }, {
                 name: "message",
                 type: "string",
                 description: "Body of the issue"
@@ -383,7 +382,7 @@
                 name: "number",
                 type: "number",
                 description: "Number of the issue in the repository"
-            },{
+            }, {
                 name: "comment",
                 type: "string",
                 description: "Comment on the new issue"

@@ -40,9 +40,9 @@ define(function (require, exports, module) {
     var gh;
     
     // UI Elements
-     var $issuesPanel,
-         $issuesWrapper,
-         $issuesList;
+    var $issuesPanel,
+        $issuesWrapper,
+        $issuesList;
     
     var githubLogo = ExtensionUtils.getModulePath(module, "img/github.png");
     
@@ -57,6 +57,169 @@ define(function (require, exports, module) {
                 chain.apply(null, functions);
             });
         }
+    }
+    
+    // Open the detailed issue dialog
+    function _viewIssue(issue) {
+        
+        issue.state_class = issue.state === "open" ? "success" : "error";
+        issue.body = marked(issue.body);
+
+        var dialog = Dialogs.showModalDialogUsingTemplate(
+            Mustache.render(IssueDialogViewTPL, issue)
+        );
+        
+        var $dialog     = dialog.getElement(),
+            $dialogBody = $dialog.find(".modal-body");
+
+        gh.getComments(issue.number).done(function (result) {
+            var $conversation       = $dialog.find(".issue-conversation"),
+                $participants       = $dialog.find(".issue-participants"),
+                $commentInputPanel  = $dialog.find(".issue-comment-input"),
+                participantsList    = [],
+                participantsMap     = {};
+                        
+            result.forEach(function (comment) {
+                participantsMap[comment.user.login] = comment.user;
+                
+                comment.created_at = moment(comment.created_at).fromNow();
+                comment.body = marked(comment.body);
+                
+                $conversation.append(Mustache.render(IssueCommentTPL, comment));
+            });
+            
+            participantsMap[issue.user.login] = issue.user;
+            
+            participantsList = $.map(participantsMap, function (participant) {
+                return participant.avatar_url;
+            });
+            
+            $participants.append(Mustache.render(IssueParticipantsTPL, {participants: participantsList}));
+
+            $commentInputPanel.append(Mustache.render(IssueCommentInputTPL, {}));
+            
+            var $commentInput   = $commentInputPanel.find(".comment-body"),
+                $commentPreview = $commentInputPanel.find(".comment-preview");
+
+            $commentInputPanel.find('a[data-action="preview"]').on("shown", function (event) {
+                $commentPreview.html(marked($commentInput.val()));
+            });
+            
+            $commentInputPanel.find(".btn-success").on("click", function (event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.commentIssue(issue.number, $commentInput.val())
+                    .done(function (comment) {
+                        // Append the new comment
+                        comment.created_at = moment(comment.created_at).fromNow();
+                        comment.body = marked(comment.body);
+                
+                        $conversation.append(Mustache.render(IssueCommentTPL, comment));
+                        
+                        // Empty the input and select the Write tab
+                        $commentInput.val("");
+                        
+                        if ($commentInputPanel.find(".nav-tabs li.active a").data("action") === "preview") {
+                            $commentInputPanel.find(".nav-tabs li:first-child a").tab("show");
+                        }
+                        
+                        $dialogBody.removeClass("loading");
+                    })
+                    .fail(function (err) {
+                        console.log("ERR: " + err);
+                    });
+            });
+            
+            $commentInputPanel.find(".btn-close").on("click", function (event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.closeIssue(issue.number).done(function (data) {
+                    $dialog.removeClass("state-open").addClass("state-closed");
+                    $dialogBody.removeClass("loading");
+                }).fail(function (err) {
+                    console.log("ERR: " + err);
+                });
+            });
+            
+            $commentInputPanel.find(".btn-reopen").on("click", function (event) {
+                $dialogBody.addClass("loading");
+                
+                nodeConnection.domains.gh.reopenIssue(issue.number).done(function (data) {
+                    $dialog.removeClass("state-closed").addClass("state-open");
+                    $dialogBody.removeClass("loading");
+                }).fail(function (err) {
+                    console.log("ERR: ");
+                    console.log(err);
+                });
+            });
+
+            $dialogBody.removeClass("loading");
+        }).fail(function (err) {
+            console.log(err);
+            
+            $dialogBody.removeClass("loading");
+        });
+    }
+    
+    // Starts the new issue workflow
+    function _createIssue() {
+        var dialog = Dialogs.showModalDialogUsingTemplate(
+            Mustache.render(IssueDialogNewTPL, ghRepoInfo)
+        );
+        
+        var submitClass     = "gh-create",
+            cancelClass     = "gh-cancel",
+            $dialogBody     = dialog.getElement().find(".modal-body"),
+            $title          = $dialogBody.find(".gh-issue-title").focus(),
+            $message        = $dialogBody.find(".gh-issue-message");
+        
+        $dialogBody.delegate(".btn", "click", function (event) {
+            var $btn = $(event.currentTarget);
+            
+            if ($btn.hasClass(cancelClass)) {
+                dialog.close();
+            } else if ($btn.hasClass(submitClass)) {
+                $dialogBody.toggleClass("loading");
+
+                gh.newIssue($title.val(), $message.val()).done(function (issue) {
+                    if (issue && issue.html_url) {
+                        dialog.close();
+                        _viewIssue(issue);
+                    } else {
+                        $dialogBody.toggleClass("error loading");
+                    }
+                });
+            }
+        });
+    }
+    
+    // Retrieves the list of issues for the repo
+    function _listIssues() {
+        var state       = $issuesPanel.find(".issue-state.disabled").data("state"),
+            assignee    = $issuesPanel.find(".issue-assignee.disabled").data("assignee") === "own";
+        
+        $issuesWrapper.addClass("loading");
+        $issuesList.empty();
+
+        gh.listIssues(state, assignee).done(function (data) {
+            data.issues.forEach(function (issue) {
+
+                issue.created_at = moment(issue.created_at).fromNow();
+                
+                var data = {
+                    githubLogo: githubLogo,
+                    issue: issue
+                };
+
+                var $row = $(Mustache.render(IssueTableRowTPL, data));
+                
+                $row.data("issue", issue);
+                
+                $issuesList.append($row);
+                
+                $issuesWrapper.removeClass("loading");
+            });
+        });
     }
     
     // Helper function to check if the github panel is open
@@ -86,170 +249,6 @@ define(function (require, exports, module) {
         );
     }
     
-    // Starts the new issue workflow
-    function _createIssue() {        
-        var dialog = Dialogs.showModalDialogUsingTemplate(
-            Mustache.render(IssueDialogNewTPL, ghRepoInfo)
-        );
-        
-        var submitClass     = "gh-create",
-            cancelClass     = "gh-cancel",
-            $dialogBody     = dialog.getElement().find(".modal-body"),
-            $title          = $dialogBody.find(".gh-issue-title").focus(),
-            $message        = $dialogBody.find(".gh-issue-message");
-        
-        $dialogBody.delegate(".btn", "click", function(event) {
-            var $btn = $(event.currentTarget);
-            
-            if ($btn.hasClass(cancelClass)) {
-                dialog.close();
-            } else if ($btn.hasClass(submitClass)) {
-                $dialogBody.toggleClass("loading");
-
-                gh.newIssue($title.val(), $message.val()).done(function(issue) {
-                    if (issue && issue.html_url) {
-                        dialog.close();
-                        _viewIssue(issue);
-                    } else {
-                        $dialogBody.toggleClass("error loading");
-                    }
-                });
-            }
-        });        
-    }
-    
-    // Open the detailed issue dialog
-    function _viewIssue(issue) {
-        
-        issue.state_class = issue.state === "open" ? "success" : "error";
-        issue.body = marked(issue.body);
-
-        var dialog = Dialogs.showModalDialogUsingTemplate(
-            Mustache.render(IssueDialogViewTPL, issue)
-        );
-
-        gh.getComments(issue.number).done(function(result) {
-            var $dialog             = dialog.getElement(),
-                $dialogBody         = $dialog.find(".modal-body"),
-                $conversation       = $dialog.find(".issue-conversation"),
-                $participants       = $dialog.find(".issue-participants"),
-                $commentInputPanel  = $dialog.find(".issue-comment-input"),
-                participantsList    = [],
-                participantsMap     = {};
-                        
-            result.forEach(function(comment) {
-                participantsMap[comment.user.login] = comment.user;
-                
-                comment.created_at = moment(comment.created_at).fromNow();
-                comment.body = marked(comment.body);
-                
-                $conversation.append(Mustache.render(IssueCommentTPL, comment));
-            });
-            
-            participantsMap[issue.user.login] = issue.user;
-            
-            participantsList = $.map(participantsMap, function(participant) {
-                return participant.avatar_url;
-            });
-            
-            $participants.append(Mustache.render(IssueParticipantsTPL, {participants: participantsList} ));
-
-            $commentInputPanel.append(Mustache.render(IssueCommentInputTPL, {}));
-            
-            var $commentInput   = $commentInputPanel.find(".comment-body"),
-                $commentPreview = $commentInputPanel.find(".comment-preview");
-
-            $commentInputPanel.find('a[data-action="preview"]').on("shown", function (event) {
-                $commentPreview.html(marked($commentInput.val()));
-            });
-            
-            $commentInputPanel.find(".btn-success").on("click", function(event) {
-                $dialogBody.addClass("loading");
-                
-                nodeConnection.domains.gh.commentIssue(issue.number, $commentInput.val())
-                    .done(function(comment) {
-                        // Append the new comment
-                        comment.created_at = moment(comment.created_at).fromNow();
-                        comment.body = marked(comment.body);
-                
-                        $conversation.append(Mustache.render(IssueCommentTPL, comment));
-                        
-                        // Empty the input and select the Write tab
-                        $commentInput.val("");
-                        
-                        if ($commentInputPanel.find(".nav-tabs li.active a").data("action") === "preview") {
-                            $commentInputPanel.find(".nav-tabs li:first-child a").tab("show")
-                        }
-                        
-                        $dialogBody.removeClass("loading");
-                    })
-                    .fail(function(err) {
-                        console.log("ERR: " + err);
-                    });
-            });
-            
-            $commentInputPanel.find(".btn-close").on("click", function(event) {
-                $dialogBody.addClass("loading");
-                
-                nodeConnection.domains.gh.closeIssue(issue.number).done(function(data) {
-                    $dialog.removeClass("state-open").addClass("state-closed");
-                    $dialogBody.removeClass("loading");
-                })
-                .fail(function(err) {
-                    console.log("ERR: " + err);
-                });
-            });
-            
-            $commentInputPanel.find(".btn-reopen").on("click", function(event) {
-                $dialogBody.addClass("loading");
-                
-                nodeConnection.domains.gh.reopenIssue(issue.number).done(function(data) {
-                    $dialog.removeClass("state-closed").addClass("state-open");
-                    $dialogBody.removeClass("loading");
-                })
-                .fail(function(err) {
-                    console.log("ERR: ");
-                    console.log(err);
-                });
-            });
-
-            $dialogBody.removeClass("loading");
-        }).fail(function(err) {
-            console.log(err);
-            
-            $dialogBody.removeClass("loading");
-        });
-    }
-    
-    // Retrieves the list of issues for the repo
-    function _listIssues() {
-        var state       = $issuesPanel.find(".issue-state.disabled").data("state"),
-            assignee    = $issuesPanel.find(".issue-assignee.disabled").data("assignee") == "own";
-        
-        $issuesWrapper.addClass("loading");
-        $issuesList.empty();
-
-        gh.listIssues(state, assignee).done(function(data) {
-            data.issues.forEach(function(issue) {
-
-                issue.created_at = moment(issue.created_at).fromNow();
-                
-                var data = {
-                    githubLogo: githubLogo,
-                    issue: issue
-                }
-
-                var $row = $(Mustache.render(IssueTableRowTPL, data));
-                
-                $row.data("issue", issue);
-                
-                $issuesList.append($row);
-                
-                $issuesWrapper.removeClass("loading");
-            });
-        });
-    }
-    
     // Initializes and and binds the events on the Issues Panel
     function _initializeIssuesPanel() {
         var $content    = $(".content").append(Mustache.render(IssuePanelTPL, ghRepoInfo));
@@ -258,17 +257,17 @@ define(function (require, exports, module) {
         $issuesWrapper  = $issuesPanel.find(".gh-issues-wrapper");
         $issuesList     = $issuesPanel.find(".gh-issues-list");
         
-        $issuesList.delegate("tr.gh-issue", "click", function(event) {
+        $issuesList.delegate("tr.gh-issue", "click", function (event) {
             var targetLocalName = $(event.target).context.localName;
             
-            if(targetLocalName !== "a" && targetLocalName !== "i") {
+            if (targetLocalName !== "a" && targetLocalName !== "i") {
                 _viewIssue($(event.currentTarget).data("issue"));
             }
         });
         
         $issuesWrapper.find(".close").on("click", _togglePanel);
 
-        $issuesWrapper.delegate(".btn.issue-state", "click", function(event) {
+        $issuesWrapper.delegate(".btn.issue-state", "click", function (event) {
             var $target = $(event.currentTarget);
             
             if (!$issuesWrapper.hasClass("loading") && !$target.hasClass("disabled")) {
@@ -277,7 +276,7 @@ define(function (require, exports, module) {
             }
         });
         
-        $issuesWrapper.delegate(".btn.issue-assignee", "click", function(event) {
+        $issuesWrapper.delegate(".btn.issue-assignee", "click", function (event) {
             var $target = $(event.currentTarget);
             
             if (!$issuesWrapper.hasClass("loading") && !$target.hasClass("disabled")) {
@@ -293,12 +292,12 @@ define(function (require, exports, module) {
         ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css");
         ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
             _initializeIssuesPanel();
-        });        
+        });
     }
     
     //
     function _initialize(hasToken) {
-        var initFunction    = hasToken ? _initializeUI : function() {},
+        var initFunction    = hasToken ? _initializeUI : function () {},
             commandFunction = hasToken ? _togglePanel : _showTokenMessage,
             menu            = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
         
@@ -311,7 +310,7 @@ define(function (require, exports, module) {
         if (hasToken) {
             CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
             menu.addMenuItem(CMD_GH_ISSUES_NEW, "", Menus.LAST);
-        }        
+        }
     }
     
     // Initialize brackets-gh extension and node domain
@@ -335,12 +334,12 @@ define(function (require, exports, module) {
                 projectPath = ProjectManager.getProjectRoot().fullPath,
                 loadPromise = nodeConnection.loadDomains([path], true);
 
-            loadPromise.then(function(){
+            loadPromise.then(function () {
                 gh = nodeConnection.domains.gh;
-                gh.setPath(projectPath).done(function(repoInfo) {
+                gh.setPath(projectPath).done(function (repoInfo) {
                     ghRepoInfo = repoInfo;
                     _initialize(true);
-                }).fail(function(err){
+                }).fail(function (err) {
                     _initialize(false);
                 });
             }).fail(function (error) {
@@ -354,7 +353,7 @@ define(function (require, exports, module) {
         chain(connect, loadGHDomain);
         
         $(ProjectManager).on("projectOpen", function (event, projectRoot) {
-            nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(function(repoInfo) {
+            nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(function (repoInfo) {
                 ghRepoInfo = repoInfo;
                 
                 var repo    = repoInfo.user + "/" + repoInfo.repo,
@@ -366,6 +365,6 @@ define(function (require, exports, module) {
                     _listIssues();
                 }
             });
-        });        
+        });
     });
 });
