@@ -4,21 +4,22 @@
 define(function (require, exports, module) {
     "use strict";
     
-    var CommandManager      = brackets.getModule("command/CommandManager"),
-        Menus               = brackets.getModule("command/Menus"),
-        EditorManager       = brackets.getModule("editor/EditorManager"),
-        ProjectManager      = brackets.getModule("project/ProjectManager"),
-        AppInit             = brackets.getModule("utils/AppInit"),
-        ExtensionUtils      = brackets.getModule("utils/ExtensionUtils"),
-        NodeConnection      = brackets.getModule("utils/NodeConnection"),
-        Dialogs             = brackets.getModule("widgets/Dialogs"),
-        IssueCommentTPL     = require("text!htmlContent/issue-comment.html"),
-        IssueCommentInputTPL= require("text!htmlContent/issue-comment-input.html"),
-        IssueDialogNewTPL   = require("text!htmlContent/issue-dialog-new.html"),
-        IssueDialogViewTPL  = require("text!htmlContent/issue-dialog-view.html"),
-        IssuePanelTPL       = require("text!htmlContent/issue-panel.html"),
-        IssueParticipantsTPL= require("text!htmlContent/issue-participants.html"),
-        IssueTableRowTPL    = require("text!htmlContent/issue-table-row.html");
+    var CommandManager          = brackets.getModule("command/CommandManager"),
+        Menus                   = brackets.getModule("command/Menus"),
+        EditorManager           = brackets.getModule("editor/EditorManager"),
+        ProjectManager          = brackets.getModule("project/ProjectManager"),
+        AppInit                 = brackets.getModule("utils/AppInit"),
+        ExtensionUtils          = brackets.getModule("utils/ExtensionUtils"),
+        NodeConnection          = brackets.getModule("utils/NodeConnection"),
+        Dialogs                 = brackets.getModule("widgets/Dialogs"),
+        ErrorTokenNotFoundTPL   = require("text!htmlContent/error-token-not-found.html"),
+        IssueCommentTPL         = require("text!htmlContent/issue-comment.html"),
+        IssueCommentInputTPL    = require("text!htmlContent/issue-comment-input.html"),
+        IssueDialogNewTPL       = require("text!htmlContent/issue-dialog-new.html"),
+        IssueDialogViewTPL      = require("text!htmlContent/issue-dialog-view.html"),
+        IssuePanelTPL           = require("text!htmlContent/issue-panel.html"),
+        IssueParticipantsTPL    = require("text!htmlContent/issue-participants.html"),
+        IssueTableRowTPL        = require("text!htmlContent/issue-table-row.html");
     
     var marked  = require("third_party/marked"),
         moment  = require("third_party/moment");
@@ -76,6 +77,13 @@ define(function (require, exports, module) {
         EditorManager.resizeEditor();
         
         CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(_isPanelOpen());
+    }
+    
+    //
+    function _showTokenMessage() {
+        Dialogs.showModalDialogUsingTemplate(
+            Mustache.render(ErrorTokenNotFoundTPL, {extensionPath: ExtensionUtils.getModulePath(module, "")})
+        );
     }
     
     // Starts the new issue workflow
@@ -282,12 +290,28 @@ define(function (require, exports, module) {
     //
     function _initializeUI() {
         // Load de CSS styles and initialize the HTML content
+        ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css");
         ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
             _initializeIssuesPanel();
-        });
+        });        
+    }
+    
+    //
+    function _initialize(hasToken) {
+        var initFunction    = hasToken ? _initializeUI : function() {},
+            commandFunction = hasToken ? _togglePanel : _showTokenMessage,
+            menu            = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
         
-        ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css").done(function () {
-        });
+        initFunction();
+        
+        CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, commandFunction);
+        menu.addMenuDivider();
+        menu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
+        
+        if (hasToken) {
+            CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
+            menu.addMenuItem(CMD_GH_ISSUES_NEW, "", Menus.LAST);
+        }        
     }
     
     // Initialize brackets-gh extension and node domain
@@ -315,7 +339,9 @@ define(function (require, exports, module) {
                 gh = nodeConnection.domains.gh;
                 gh.setPath(projectPath).done(function(repoInfo) {
                     ghRepoInfo = repoInfo;
-                    _initializeUI();
+                    _initialize(true);
+                }).fail(function(err){
+                    _initialize(false);
                 });
             }).fail(function (error) {
                 console.log("[brackets-gh] failed to load gh domain");
@@ -340,15 +366,6 @@ define(function (require, exports, module) {
                     _listIssues();
                 }
             });
-        });
-        
-        CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, _togglePanel);
-        CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
-        
-        // Register command
-        var menu = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
-        menu.addMenuDivider();
-        menu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
-        menu.addMenuItem(CMD_GH_ISSUES_NEW, "", Menus.LAST);
+        });        
     });
 });
