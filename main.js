@@ -5,6 +5,8 @@ define(function (require, exports, module) {
     "use strict";
     
     var CommandManager          = brackets.getModule("command/CommandManager"),
+        Commands                = brackets.getModule("command/Commands"),
+        KeyBindingManager       = brackets.getModule("command/KeyBindingManager"),
         Menus                   = brackets.getModule("command/Menus"),
         EditorManager           = brackets.getModule("editor/EditorManager"),
         ProjectManager          = brackets.getModule("project/ProjectManager"),
@@ -28,10 +30,6 @@ define(function (require, exports, module) {
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
 
     var nodeConnection;
-    
-    var contextMenu     = Menus.getContextMenu(Menus.ContextMenuIds.PROJECT_MENU),
-        menuItems       = [],
-        buildMenuItem   = null;
     
     // Current git repo information based on the project path
     var ghRepoInfo = {};
@@ -167,11 +165,16 @@ define(function (require, exports, module) {
             Mustache.render(IssueDialogNewTPL, ghRepoInfo)
         );
         
-        var submitClass     = "gh-create",
-            cancelClass     = "gh-cancel",
-            $dialogBody     = dialog.getElement().find(".modal-body"),
-            $title          = $dialogBody.find(".gh-issue-title").focus(),
-            $message        = $dialogBody.find(".gh-issue-message");
+        var submitClass = "gh-create",
+            cancelClass = "gh-cancel",
+            $dialogBody = dialog.getElement().find(".modal-body"),
+            $title      = $dialogBody.find(".gh-issue-title").focus(),
+            $message    = $dialogBody.find(".comment-body"),
+            $preview    = $dialogBody.find(".comment-preview");
+        
+        $dialogBody.find('a[data-action="preview"]').on("shown", function (event) {
+            $preview.html(marked($message.val()));
+        });
         
         $dialogBody.delegate(".btn", "click", function (event) {
             var $btn = $(event.currentTarget);
@@ -299,18 +302,23 @@ define(function (require, exports, module) {
     function _initialize(hasToken) {
         var initFunction    = hasToken ? _initializeUI : function () {},
             commandFunction = hasToken ? _togglePanel : _showTokenMessage,
-            menu            = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
+            viewMenu        = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU),
+            fileMenu        = Menus.getMenu(Menus.AppMenuBar.FILE_MENU),
+            fileNewId       = fileMenu._getMenuItemId(Commands.FILE_NEW);
         
         initFunction();
         
         CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, commandFunction);
-        menu.addMenuDivider();
-        menu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
+
+        viewMenu.addMenuDivider();
+        viewMenu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
         
         if (hasToken) {
-            CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
-            menu.addMenuItem(CMD_GH_ISSUES_NEW, "", Menus.LAST);
+            CommandManager.register("New Github Issue", CMD_GH_ISSUES_NEW, _createIssue);
+            fileMenu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.AFTER, Commands.FILE_NEW_UNTITLED);
         }
+        
+        CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
     }
     
     // Initialize brackets-gh extension and node domain

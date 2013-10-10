@@ -9,7 +9,26 @@
         <div class="alert alert-error">Oops... an error occurred. Please try again later</div>
 
         <input class="gh-issue-title" placeholder="Title" type="text" />
-        <textarea class="gh-issue-message" placeholder="Leave a comment" rows="10"></textarea>
+        
+        <div class="issue-comment-input well">
+            <ul class="nav nav-tabs">
+                <li class="active">
+                    <a href="#write" data-action="write" data-toggle="tab">Write</a>
+                </li>
+                <li>
+                    <a href="#preview" data-action="preview" data-toggle="tab">Preview</a>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <div class="tab-pane active" id="write">
+                    <textarea class="comment-body" placeholder="Leave a comment" rows="10"></textarea>
+                </div>
+                <div class="comment-preview tab-pane" id="preview">
+                    
+                </div>
+            </div>
+        </div>
 
         <div class="btn-toolbar pull-right">
             <button class="btn gh-cancel">Cancel</button>
