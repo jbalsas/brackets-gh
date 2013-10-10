@@ -286,6 +286,7 @@ Issue.prototype.list = function(user, repo, opt_callback) {
         labels: options.label,
         milestone: options.milestone,
         repo: repo,
+        sort: 'updated',
         state: options.state,
         user: user
     };
