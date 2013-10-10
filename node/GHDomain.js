@@ -26,7 +26,7 @@
     function _initHelper(cb, options, command) {
         var operations  = [];
         
-        options.remote = options.remote || base.config.default_remote;
+        options.remote = options.remote || base.getConfig().default_remote;
 
         if (!_path) {
             cb("Path has not been initialized!");
