@@ -328,7 +328,15 @@ define(function (require, exports, module) {
         chain(connect, loadGHDomain);
         
         $(ProjectManager).on("projectOpen", function (event, projectRoot) {
-            nodeConnection.domains.gh.setPath(projectRoot.fullPath);
+            nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(function(repoInfo) {
+                ghRepoInfo = repoInfo;
+                
+                $issuesWrapper.find(".title .repo").html(repoInfo.user + "/" + repoInfo.repo);
+                
+                if (_isPanelOpen()) {
+                    _listIssues();
+                }
+            });
         });
         
         CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, _togglePanel);
