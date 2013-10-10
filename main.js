@@ -184,8 +184,6 @@ define(function (require, exports, module) {
                 $dialogBody.addClass("loading");
                 
                 nodeConnection.domains.gh.closeIssue(issue.number).done(function(data) {
-                    console.log(data);
-                    
                     $dialog.removeClass("state-open").addClass("state-closed");
                     $dialogBody.removeClass("loading");
                 })
@@ -198,8 +196,6 @@ define(function (require, exports, module) {
                 $dialogBody.addClass("loading");
                 
                 nodeConnection.domains.gh.reopenIssue(issue.number).done(function(data) {
-                    console.log(data);
-                    
                     $dialog.removeClass("state-closed").addClass("state-open");
                     $dialogBody.removeClass("loading");
                 })
@@ -255,7 +251,11 @@ define(function (require, exports, module) {
         $issuesList     = $issuesPanel.find(".gh-issues-list");
         
         $issuesList.delegate("tr.gh-issue", "click", function(event) {
-           _viewIssue($(event.currentTarget).data("issue"));
+            var targetLocalName = $(event.target).context.localName;
+            
+            if(targetLocalName !== "a" && targetLocalName !== "i") {
+                _viewIssue($(event.currentTarget).data("issue"));
+            }
         });
         
         $issuesWrapper.find(".close").on("click", _togglePanel);
@@ -331,7 +331,10 @@ define(function (require, exports, module) {
             nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(function(repoInfo) {
                 ghRepoInfo = repoInfo;
                 
-                $issuesWrapper.find(".title .repo").html(repoInfo.user + "/" + repoInfo.repo);
+                var repo    = repoInfo.user + "/" + repoInfo.repo,
+                    repoURL = "http://github.com/" + repo;
+
+                $issuesWrapper.find(".title .repo a").html(repo).attr("href", repoURL);
                 
                 if (_isPanelOpen()) {
                     _listIssues();
