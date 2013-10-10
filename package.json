@@ -1,15 +1,12 @@
 {
-  "name": "brackets-gh",
-  "title": "Brackets extension for nodegh.io",
-  "description": "Integrates nodegh.io within Brackets",
+  "name": "bracketsgh",
+  "title": "BracketsGH",
+  "description": "Use GitHub without ever leaving Brackets",
   "homepage": "https://github.com/jbalsas/brackets-gh",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "Chema Balsas <jbalsas@gmail.com> (https://github.com/jbalsas)",
+  "license": "MIT",
   "engines": {
     "brackets": ">=0.31.0"
-  },
-  "dependencies": {
-    "moment": "~2.3.0",
-    "marked": "~0.2.9"
   }
 }
