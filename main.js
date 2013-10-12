@@ -355,7 +355,11 @@ define(function (require, exports, module) {
     
     // Register BracketsGH commands
     function _registerCommands() {
+        var fileMenu = Menus.getMenu(Menus.AppMenuBar.FILE_MENU);
+        
         CommandManager.register("New Github Issue", CMD_GH_ISSUES_NEW, _createIssue);
+        
+        fileMenu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.AFTER, Commands.FILE_NEW_UNTITLED);
     }
     
     // Initializes UI listeners on the issues panel
