@@ -1,5 +1,5 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, indent: 4, maxerr: 50, browser: true */
-/*global $, define, brackets, Mustache */
+/*global $, define, brackets, Mustache, hljs */
 
 define(function (require, exports, module) {
     "use strict";
@@ -27,8 +27,15 @@ define(function (require, exports, module) {
     var ErrorMessageTPL     = "<strong>Ooops... looks like something unexpected happened:</strong> {{status}} {{code}} ({{message}})",
         ErrorNoIssuesTPL    = "We couldn't find any {{state}} issues {{assigned}} on {{user}}/{{repo}}";
     
-    var marked  = require("third_party/marked"),
-        moment  = require("third_party/moment");
+    var highlight   = require("third_party/highlight/highlight"),
+        marked      = require("third_party/marked"),
+        moment      = require("third_party/moment");
+    
+    marked.setOptions({
+        highlight: function (code, lang) {
+            return hljs.highlight(lang, code).value;
+        }
+    });
     
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
@@ -410,6 +417,7 @@ define(function (require, exports, module) {
         
         // Load de CSS styles and initialize the HTML content
         ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css");
+        ExtensionUtils.loadStyleSheet(module, "third_party/highlight/github.css");
         ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
             var $content    = $(".content").append(_renderTPL(IssuePanelTPL, currentRepo));
             
