@@ -15,6 +15,7 @@ define(function (require, exports, module) {
         NodeConnection          = brackets.getModule("utils/NodeConnection"),
         Dialogs                 = brackets.getModule("widgets/Dialogs"),
         ErrorTokenNotFoundTPL   = require("text!htmlContent/error-token-not-found.html"),
+        ErrorProjectNotFoundTPL = require("text!htmlContent/error-project-not-found.html"),
         IssueCommentTPL         = require("text!htmlContent/issue-comment.html"),
         IssueCommentInputTPL    = require("text!htmlContent/issue-comment-input.html"),
         IssueDialogNewTPL       = require("text!htmlContent/issue-dialog-new.html"),
@@ -22,6 +23,9 @@ define(function (require, exports, module) {
         IssuePanelTPL           = require("text!htmlContent/issue-panel.html"),
         IssueParticipantsTPL    = require("text!htmlContent/issue-participants.html"),
         IssueTableRowTPL        = require("text!htmlContent/issue-table-row.html");
+    
+    var ErrorMessageTPL     = "<strong>Ooops... looks like something unexpected happened:</strong> {{status}} {{code}} ({{message}})",
+        ErrorNoIssuesTPL    = "We couldn't find any {{state}} issues {{assigned}} on {{user}}/{{repo}}";
     
     var marked  = require("third_party/marked"),
         moment  = require("third_party/moment");
@@ -31,8 +35,11 @@ define(function (require, exports, module) {
 
     var nodeConnection;
     
-    // Current git repo information based on the project path
-    var ghRepoInfo = {};
+    // Current project git repository information
+    var currentRepo = {};
+    
+    // Reference for triggers and listeners
+    var $bracketsgh = $(exports);
     
     // Shortcut to gh domain
     var gh;
@@ -41,6 +48,9 @@ define(function (require, exports, module) {
     var $issuesPanel,
         $issuesWrapper,
         $issuesList;
+    
+    // Default Error TPL that will show if none is passed to _showErrorMessage
+    var defaultTPL = ErrorTokenNotFoundTPL;
     
     var githubLogo = ExtensionUtils.getModulePath(module, "img/github.png");
     
@@ -55,6 +65,27 @@ define(function (require, exports, module) {
                 chain.apply(null, functions);
             });
         }
+    }
+    
+    // Helper function to render a template with Mustache
+    // @param {object} tpl The mustache template to be rendered
+    // @param {object} data The data to be passed down to the template
+    // @return {string} The result of rendering the given template
+    function _renderTPL(tpl, data) {
+        var path = ExtensionUtils.getModulePath(module, "");
+        
+        return Mustache.render(tpl, {
+            data: data,
+            path: path
+        });
+    }
+    
+    // Displays an error message
+    // @param {string} tpl The error message TPL to show
+    function _showErrorMessage(tpl) {
+        var extensionPath = ExtensionUtils.getModulePath(module, "");
+        
+        Dialogs.showModalDialogUsingTemplate(_renderTPL(tpl || defaultTPL));
     }
     
     // Open the detailed issue dialog
@@ -161,67 +192,114 @@ define(function (require, exports, module) {
     
     // Starts the new issue workflow
     function _createIssue() {
-        var dialog = Dialogs.showModalDialogUsingTemplate(
-            Mustache.render(IssueDialogNewTPL, ghRepoInfo)
-        );
-        
-        var submitClass = "gh-create",
-            cancelClass = "gh-cancel",
-            $dialogBody = dialog.getElement().find(".modal-body"),
-            $title      = $dialogBody.find(".gh-issue-title").focus(),
-            $message    = $dialogBody.find(".comment-body"),
-            $preview    = $dialogBody.find(".comment-preview");
-        
-        $dialogBody.find('a[data-action="preview"]').on("shown", function (event) {
-            $preview.html(marked($message.val()));
-        });
-        
-        $dialogBody.delegate(".btn", "click", function (event) {
-            var $btn = $(event.currentTarget);
+        if (currentRepo && currentRepo.repo) {
+            var dialog = Dialogs.showModalDialogUsingTemplate(
+                Mustache.render(IssueDialogNewTPL, currentRepo)
+            );
             
-            if ($btn.hasClass(cancelClass)) {
-                dialog.close();
-            } else if ($btn.hasClass(submitClass)) {
-                $dialogBody.toggleClass("loading");
-
-                gh.newIssue($title.val(), $message.val()).done(function (issue) {
-                    if (issue && issue.html_url) {
-                        dialog.close();
-                        _viewIssue(issue);
-                    } else {
-                        $dialogBody.toggleClass("error loading");
-                    }
-                });
-            }
-        });
+            var submitClass = "gh-create",
+                cancelClass = "gh-cancel",
+                $dialogBody = dialog.getElement().find(".modal-body"),
+                $title      = $dialogBody.find(".gh-issue-title").focus(),
+                $message    = $dialogBody.find(".comment-body"),
+                $preview    = $dialogBody.find(".comment-preview");
+            
+            $dialogBody.find('a[data-action="preview"]').on("shown", function (event) {
+                $preview.html(marked($message.val()));
+            });
+            
+            $dialogBody.delegate(".btn", "click", function (event) {
+                var $btn = $(event.currentTarget);
+                
+                if ($btn.hasClass(cancelClass)) {
+                    dialog.close();
+                } else if ($btn.hasClass(submitClass)) {
+                    $dialogBody.toggleClass("loading");
+    
+                    gh.newIssue($title.val(), $message.val()).done(function (issue) {
+                        if (issue && issue.html_url) {
+                            dialog.close();
+                            _viewIssue(issue);
+                        } else {
+                            $dialogBody.toggleClass("error loading");
+                        }
+                    });
+                }
+            });
+        } else {
+            Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
+        }
     }
     
-    // Retrieves the list of issues for the repo
+    // Cleans up the issues panel
+    function _resetIssuesUI() {
+        var $noIssues   = $issuesWrapper.find(".no-issues"),
+            $noGithub   = $issuesWrapper.find(".no-github"),
+            $errors     = $issuesWrapper.find(".errors"),
+            $state      = $issuesPanel.find(".issue-state"),
+            $assignee   = $issuesPanel.find(".issue-assignee");
+        
+        $issuesWrapper.removeClass("loading");
+        $noIssues.addClass("hide");
+        $noGithub.addClass("hide");
+        $errors.addClass("hide");
+        $state.addClass("disabled");
+        $assignee.addClass("disabled");
+        
+        $issuesList.empty();
+    }
+    
+    // Retrieves the list of issues for the current project
     function _listIssues() {
         var state       = $issuesPanel.find(".issue-state.disabled").data("state"),
-            assignee    = $issuesPanel.find(".issue-assignee.disabled").data("assignee") === "own";
+            $state      = $issuesPanel.find(".issue-state:not(.active)"),
+            assignee    = $issuesPanel.find(".issue-assignee.disabled").data("assignee") === "own",
+            $assignee   = $issuesPanel.find(".issue-assignee:not(.active)"),
+            $noIssues   = $issuesWrapper.find(".no-issues"),
+            $errors     = $issuesWrapper.find(".errors");
+        
+        _resetIssuesUI();
         
         $issuesWrapper.addClass("loading");
-        $issuesList.empty();
 
         gh.listIssues(state, assignee).done(function (data) {
-            data.issues.forEach(function (issue) {
+            if (data.issues && data.issues.length) {
+                data.issues.forEach(function (issue) {
+                    issue.created_at = moment(issue.created_at).fromNow();
+                    
+                    var data = {
+                        githubLogo: githubLogo,
+                        issue: issue
+                    };
+    
+                    var $row = $(Mustache.render(IssueTableRowTPL, data));
+                    
+                    $row.data("issue", issue);
+                    
+                    $issuesList.append($row);
+                });
+            } else {
+                $noIssues.find("span").html(Mustache.render(ErrorNoIssuesTPL,
+                    {
+                        state: state,
+                        assigned: (assignee ? "assigned to you" : ""),
+                        user: currentRepo.user,
+                        repo: currentRepo.repo
+                    }));
+                
+                $noIssues.removeClass("hide");
+            }
+            
+            $state.removeClass("disabled");
+            $assignee.removeClass("disabled");
+            $issuesWrapper.removeClass("loading");
 
-                issue.created_at = moment(issue.created_at).fromNow();
-                
-                var data = {
-                    githubLogo: githubLogo,
-                    issue: issue
-                };
-
-                var $row = $(Mustache.render(IssueTableRowTPL, data));
-                
-                $row.data("issue", issue);
-                
-                $issuesList.append($row);
-                
-                $issuesWrapper.removeClass("loading");
-            });
+        }).fail(function (err) {
+            console.log(err);
+            $errors.find("span").html(Mustache.render(ErrorMessageTPL, err));
+            $errors.removeClass("hide");
+            
+            $issuesWrapper.removeClass("loading");
         });
     }
     
@@ -236,8 +314,12 @@ define(function (require, exports, module) {
         if (_isPanelOpen()) {
             $issuesPanel.hide();
         } else {
-            $issuesPanel.show();
-            _listIssues();
+            if (currentRepo && currentRepo.repo) {
+                $issuesPanel.show();
+                _listIssues();
+            } else {
+                _showErrorMessage(ErrorProjectNotFoundTPL);
+            }
         }
         
         EditorManager.resizeEditor();
@@ -245,21 +327,39 @@ define(function (require, exports, module) {
         CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(_isPanelOpen());
     }
     
-    //
-    function _showTokenMessage() {
-        Dialogs.showModalDialogUsingTemplate(
-            Mustache.render(ErrorTokenNotFoundTPL, {extensionPath: ExtensionUtils.getModulePath(module, "")})
-        );
+    // Updates available menu options or commands based on the current project
+    // @param {object} event JQuery event triggering the update of the menus
+    // @param {string: repo, string: user, ...} data Current repository and user details
+    function _updatePanels(event, data) {
+        var repo    = data.repo ? (data.user + "/" + data.repo) : "unknown",
+            repoURL = data.repo ? ("http://github.com/" + repo) : "#";
+        
+        $issuesWrapper.find(".title .repo a").html(repo).attr("href", repoURL);
+        
+        if (_isPanelOpen()) {
+            if (data.repo) {
+                _listIssues();
+            } else {
+                _resetIssuesUI();
+                $issuesWrapper.find(".no-github").removeClass("hide");
+            }
+        }
     }
     
-    // Initializes and and binds the events on the Issues Panel
-    function _initializeIssuesPanel() {
-        var $content    = $(".content").append(Mustache.render(IssuePanelTPL, ghRepoInfo));
-            
-        $issuesPanel    = $content.find(".gh-issue-panel");
-        $issuesWrapper  = $issuesPanel.find(".gh-issues-wrapper");
-        $issuesList     = $issuesPanel.find(".gh-issues-list");
-        
+    // Updates current project git repository information
+    // @param {string: repo, string: user, ...} data Current repository and user details
+    function _updateRepo(data) {
+        currentRepo = data;
+        $bracketsgh.trigger("updateRepo", data);
+    }
+    
+    // Register BracketsGH commands
+    function _registerCommands() {
+        CommandManager.register("New Github Issue", CMD_GH_ISSUES_NEW, _createIssue);
+    }
+    
+    // Initializes UI listeners on the issues panel
+    function _bindIssuesPanel() {
         $issuesList.delegate("tr.gh-issue", "click", function (event) {
             var targetLocalName = $(event.target).context.localName;
             
@@ -274,7 +374,7 @@ define(function (require, exports, module) {
             var $target = $(event.currentTarget);
             
             if (!$issuesWrapper.hasClass("loading") && !$target.hasClass("disabled")) {
-                $issuesWrapper.find(".btn.issue-state").toggleClass("disabled");
+                $issuesWrapper.find(".btn.issue-state").toggleClass("disabled").toggleClass("active");
                 _listIssues();
             }
         });
@@ -283,45 +383,66 @@ define(function (require, exports, module) {
             var $target = $(event.currentTarget);
             
             if (!$issuesWrapper.hasClass("loading") && !$target.hasClass("disabled")) {
-                $issuesWrapper.find(".btn.issue-assignee").toggleClass("disabled");
+                $issuesWrapper.find(".btn.issue-assignee").toggleClass("disabled").toggleClass("active");
                 _listIssues();
             }
         });
     }
     
-    //
+    // Initializes basic UI listeners
+    function _bindUI() {
+        $bracketsgh.on("updateRepo", _updatePanels);
+        
+        $(ProjectManager).on("projectOpen", function (event, projectRoot) {
+            nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(_updateRepo);
+        });
+        
+        _bindIssuesPanel();
+    }
+    
+    // Loads assets and 
     function _initializeUI() {
+        var $deferred = $.Deferred();
+        
         // Load de CSS styles and initialize the HTML content
         ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css");
         ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
-            _initializeIssuesPanel();
+            var $content    = $(".content").append(_renderTPL(IssuePanelTPL, currentRepo));
+            
+            $issuesPanel    = $content.find(".gh-issue-panel");
+            $issuesWrapper  = $issuesPanel.find(".gh-issues-wrapper");
+            $issuesList     = $issuesPanel.find(".gh-issues-list");
+            
+            $deferred.resolve();
+        });
+        
+        return $deferred.promise();
+    }
+    
+    // Initializes the panels, menus and listeners of the extension
+    // @param {object} err Error object during the initialization process
+    // @param {string: repo, string: user, ...} data Current repository and user details
+    function _initialize(err, data) {
+        var listIssuesCommand   = err ? _showErrorMessage : _togglePanel,
+            viewMenu            = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
+        
+        _initializeUI().done(function () {
+            CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, listIssuesCommand);
+            
+            viewMenu.addMenuDivider();
+            viewMenu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
+            
+            CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
+            
+            if (!err) {
+                _bindUI();
+                _registerCommands();
+                _updateRepo(data);
+            }
         });
     }
     
-    //
-    function _initialize(hasToken) {
-        var initFunction    = hasToken ? _initializeUI : function () {},
-            commandFunction = hasToken ? _togglePanel : _showTokenMessage,
-            viewMenu        = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU),
-            fileMenu        = Menus.getMenu(Menus.AppMenuBar.FILE_MENU),
-            fileNewId       = fileMenu._getMenuItemId(Commands.FILE_NEW);
-        
-        initFunction();
-        
-        CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, commandFunction);
-
-        viewMenu.addMenuDivider();
-        viewMenu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
-        
-        if (hasToken) {
-            CommandManager.register("New Github Issue", CMD_GH_ISSUES_NEW, _createIssue);
-            fileMenu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.AFTER, Commands.FILE_NEW_UNTITLED);
-        }
-        
-        CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
-    }
-    
-    // Initialize brackets-gh extension and node domain
+    // Initialize BracketsGH extension and node domain
     AppInit.appReady(function () {
         nodeConnection = new NodeConnection();
         
@@ -344,35 +465,22 @@ define(function (require, exports, module) {
 
             loadPromise.then(function () {
                 gh = nodeConnection.domains.gh;
-                gh.setPath(projectPath).done(function (repoInfo) {
-                    ghRepoInfo = repoInfo;
-                    _initialize(true);
+                
+                // Try setting the gh path to check if the user has already generated the
+                // credentials and if the current project is a valid GitHub hosted git project
+                gh.setPath(projectPath).done(function (data) {
+                    _initialize(null, data);
                 }).fail(function (err) {
-                    _initialize(false);
+                    _initialize(err);
                 });
-            }).fail(function (error) {
-                console.log("[brackets-gh] failed to load gh domain");
-                console.log(error);
+                
+            }).fail(function (err) {
+                _initialize(err);
             });
 
             return loadPromise;
         }
 
         chain(connect, loadGHDomain);
-        
-        $(ProjectManager).on("projectOpen", function (event, projectRoot) {
-            nodeConnection.domains.gh.setPath(projectRoot.fullPath).done(function (repoInfo) {
-                ghRepoInfo = repoInfo;
-                
-                var repo    = repoInfo.user + "/" + repoInfo.repo,
-                    repoURL = "http://github.com/" + repo;
-
-                $issuesWrapper.find(".title .repo a").html(repo).attr("href", repoURL);
-                
-                if (_isPanelOpen()) {
-                    _listIssues();
-                }
-            });
-        });
     });
 });
