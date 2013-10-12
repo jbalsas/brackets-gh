@@ -39,6 +39,7 @@ define(function (require, exports, module) {
     
     var MENU_BRACKETSGH = "jbalsas.bracketsgh.github";
     
+    var CMD_GH_HELP_TOKEN   = "gh_help_token";
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
 
@@ -437,20 +438,21 @@ define(function (require, exports, module) {
     // @param {object} err Error object during the initialization process
     // @param {string: repo, string: user, ...} data Current repository and user details
     function _initialize(err, data) {
-        var listIssuesCommand   = err ? _showErrorMessage : _togglePanel,
-            menu                = Menus.addMenu("GitHub", MENU_BRACKETSGH, Menus.AFTER, Menus.AppMenuBar.NAVIGATE_MENU);
+        var menu = Menus.addMenu("GitHub", MENU_BRACKETSGH, Menus.AFTER, Menus.AppMenuBar.NAVIGATE_MENU);
         
         _initializeUI().done(function () {
-            CommandManager.register("Project Issues", CMD_GH_ISSUES_LIST, listIssuesCommand);
-            
-            menu.addMenuItem(CMD_GH_ISSUES_LIST, "", "");
-            
-            CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
-            
             if (!err) {
+                CommandManager.register("Project Issues", CMD_GH_ISSUES_LIST, _togglePanel);
+            
+                menu.addMenuItem(CMD_GH_ISSUES_LIST, "", "");
+                CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
+                
                 _bindUI();
                 _registerCommands();
                 _updateRepo(data);
+            } else {
+                CommandManager.register("Generate GitHub Token", CMD_GH_HELP_TOKEN, _showErrorMessage);
+                menu.addMenuItem(CMD_GH_HELP_TOKEN, "", "");
             }
         });
     }
