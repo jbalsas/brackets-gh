@@ -3,7 +3,7 @@
   "title": "BracketsGH",
   "description": "Use GitHub without ever leaving Brackets",
   "homepage": "https://github.com/jbalsas/brackets-gh",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Chema Balsas <jbalsas@gmail.com> (https://github.com/jbalsas)",
   "license": "MIT",
   "engines": {
