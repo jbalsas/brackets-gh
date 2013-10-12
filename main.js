@@ -37,6 +37,8 @@ define(function (require, exports, module) {
         }
     });
     
+    var MENU_BRACKETSGH = "jbalsas.bracketsgh.github";
+    
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
 
@@ -362,11 +364,11 @@ define(function (require, exports, module) {
     
     // Register BracketsGH commands
     function _registerCommands() {
-        var fileMenu = Menus.getMenu(Menus.AppMenuBar.FILE_MENU);
+        var menu = Menus.getMenu(MENU_BRACKETSGH);
         
-        CommandManager.register("New Github Issue", CMD_GH_ISSUES_NEW, _createIssue);
+        CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
         
-        fileMenu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.AFTER, Commands.FILE_NEW_UNTITLED);
+        menu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.FIRST);
     }
     
     // Initializes UI listeners on the issues panel
@@ -436,13 +438,12 @@ define(function (require, exports, module) {
     // @param {string: repo, string: user, ...} data Current repository and user details
     function _initialize(err, data) {
         var listIssuesCommand   = err ? _showErrorMessage : _togglePanel,
-            viewMenu            = Menus.getMenu(Menus.AppMenuBar.VIEW_MENU);
+            menu                = Menus.addMenu("GitHub", MENU_BRACKETSGH, Menus.AFTER, Menus.AppMenuBar.NAVIGATE_MENU);
         
         _initializeUI().done(function () {
-            CommandManager.register("Github Issues", CMD_GH_ISSUES_LIST, listIssuesCommand);
+            CommandManager.register("Project Issues", CMD_GH_ISSUES_LIST, listIssuesCommand);
             
-            viewMenu.addMenuDivider();
-            viewMenu.addMenuItem(CMD_GH_ISSUES_LIST, "", Menus.LAST);
+            menu.addMenuItem(CMD_GH_ISSUES_LIST, "", "");
             
             CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);
             
