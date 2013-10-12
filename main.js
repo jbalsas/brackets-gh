@@ -442,7 +442,7 @@ define(function (require, exports, module) {
         
         _initializeUI().done(function () {
             if (!err) {
-                CommandManager.register("Project Issues", CMD_GH_ISSUES_LIST, _togglePanel);
+                CommandManager.register("Explore Issues\u2026", CMD_GH_ISSUES_LIST, _togglePanel);
             
                 menu.addMenuItem(CMD_GH_ISSUES_LIST, "", "");
                 CommandManager.get(CMD_GH_ISSUES_LIST).setChecked(false);

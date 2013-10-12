@@ -26,7 +26,7 @@ For security reasons, BracketsGH needs a GitHub token to work. To generate it, y
 
 You'll be prompted for your GitHub username and password, and a token will be generated for you.
 
-In case you don't know where the folder is, just try to using BracketsGH and a message with the comman specific to your installation will appear.
+In case you don't know where the folder is, just click on `GitHub > Generate GitHub Token` and BracketsGH will provide you with the appropiated command specific to your current installation.
 
 ![NoToken](help/notoken.png)
 
@@ -40,13 +40,13 @@ Most Issue related operations are already available
 
 #### 1. Create
 
-Go to `File > New GitHub Issue` or press `Cmd/Ctrl + Shift + N` to quickly create a new issue.
+Go to `GitHub > New Issue` or press `Cmd/Ctrl + Shift + N` to quickly create a new issue.
 
 ![NoToken](help/newissue.png)
 
 #### 2. List
 
-Go to `View > GitHub Issues` to load the issues of the current project.
+Go to `GitHub > Explore Issues` to load the issues of the current project.
 
 ![NoToken](help/listissue.png)
 
