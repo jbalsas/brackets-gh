@@ -253,6 +253,13 @@
     }
     
     /**
+     * Checks if the user already has credentials
+     */
+    function _cmdHasCredentials() {
+        return User.hasCredentials();
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -412,6 +419,17 @@
                 type: "object",
                 description: "The result of the execution"
             }],
+            []
+        );
+        
+        // Checks if the user has credentials
+        _domainManager.registerCommand(
+            "gh",
+            "hasCredentials",
+            _cmdHasCredentials,
+            false,
+            "Gets an issue comments",
+            [],
             []
         );
     }

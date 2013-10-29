@@ -481,12 +481,16 @@ define(function (require, exports, module) {
             loadPromise.then(function () {
                 gh = nodeConnection.domains.gh;
                 
-                // Try setting the gh path to check if the user has already generated the
-                // credentials and if the current project is a valid GitHub hosted git project
-                gh.setPath(projectPath).done(function (data) {
-                    _initialize(null, data);
-                }).fail(function (err) {
-                    _initialize(err);
+                gh.hasCredentials().done(function (credentials) {
+                    if (credentials) {
+                        gh.setPath(projectPath).done(function (data) {
+                            _initialize(null, data);
+                        }).fail(function (err) {
+                            _initialize(err);
+                        });
+                    } else {
+                        _initialize("Token needed");
+                    }
                 });
                 
             }).fail(function (err) {
