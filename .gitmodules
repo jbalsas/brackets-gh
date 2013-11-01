@@ -1,0 +1,3 @@
+[submodule "node/node_modules/async"]
+	path = node/node_modules/async
+	url = https://github.com/caolan/async.git
