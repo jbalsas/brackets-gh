@@ -49,6 +49,8 @@ define(function (require, exports, module) {
     
     var CMD_GH_GISTS_NEW_FROM_FILE      = "gh_gists_new_from_file";
     var CMD_GH_GISTS_NEW_FROM_SELECTION = "gh_gists_new_from_selection";
+    
+    var CMD_GH_PR_SUBMIT = "gh_pr_submit";
 
     var nodeConnection;
     
@@ -105,9 +107,13 @@ define(function (require, exports, module) {
         Dialogs.showModalDialogUsingTemplate(_renderTPL(tpl || defaultTPL));
     }
     
-    // Creates a new Gist from selection
-    function _createGistFromSelection() {
-        _createGist(true);
+    // Submits a Pull Request
+    function _submitPullRequest() {
+        gh.submitPullRequest().done(function (pr) {
+            console.log(pr);
+        }).fail(function (err) {
+            console.error(err);
+        });
     }
     
     // Creates a new Gist
@@ -156,6 +162,11 @@ define(function (require, exports, module) {
         } else {
             Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
         }
+    }
+    
+    // Creates a new Gist from selection
+    function _createGistFromSelection() {
+        _createGist(true);
     }
     
     // Open the detailed issue dialog
@@ -430,12 +441,16 @@ define(function (require, exports, module) {
         CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
         CommandManager.register("New Gist from File", CMD_GH_GISTS_NEW_FROM_FILE, _createGist);
         CommandManager.register("New Gist from Selection", CMD_GH_GISTS_NEW_FROM_SELECTION, _createGistFromSelection);
+        CommandManager.register("Submit Pull Request", CMD_GH_PR_SUBMIT, _submitPullRequest);
         
         menu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.FIRST);
         
         menu.addMenuDivider();
         menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_FILE, "");
         menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_SELECTION, "");
+        
+        menu.addMenuDivider();
+        menu.addMenuItem(CMD_GH_PR_SUBMIT, "");
     }
     
     // Initializes UI listeners on the issues panel
