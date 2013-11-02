@@ -100,6 +100,27 @@
     margin-right: -5px;
 }
 
+/* New Gist */
+.new-gist-dialog input, .new-issue-dialog textarea {
+    resize: none;
+    width: 98%;
+}
+
+.new-gist-dialog .error .alert.alert-error {
+    display: block;
+}
+
+.new-gist-dialog .alert.alert-error {
+    display: none;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+    color: #b94a48;
+}
+
+.btn.secret {
+    background-color: #dfd8ae;
+}
+
 /* New Issue */
 .new-issue-dialog input, .new-issue-dialog textarea {
     resize: none;

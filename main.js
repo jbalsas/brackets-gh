@@ -8,14 +8,17 @@ define(function (require, exports, module) {
         Commands                = brackets.getModule("command/Commands"),
         KeyBindingManager       = brackets.getModule("command/KeyBindingManager"),
         Menus                   = brackets.getModule("command/Menus"),
+        DocumentManager         = brackets.getModule("document/DocumentManager"),
         EditorManager           = brackets.getModule("editor/EditorManager"),
         ProjectManager          = brackets.getModule("project/ProjectManager"),
         AppInit                 = brackets.getModule("utils/AppInit"),
         ExtensionUtils          = brackets.getModule("utils/ExtensionUtils"),
+        NativeApp               = brackets.getModule("utils/NativeApp"),
         NodeConnection          = brackets.getModule("utils/NodeConnection"),
         Dialogs                 = brackets.getModule("widgets/Dialogs"),
         ErrorTokenNotFoundTPL   = require("text!htmlContent/error-token-not-found.html"),
         ErrorProjectNotFoundTPL = require("text!htmlContent/error-project-not-found.html"),
+        GistDialogNewTPL        = require("text!htmlContent/gist-dialog-new.html"),
         IssueCommentTPL         = require("text!htmlContent/issue-comment.html"),
         IssueCommentInputTPL    = require("text!htmlContent/issue-comment-input.html"),
         IssueDialogNewTPL       = require("text!htmlContent/issue-dialog-new.html"),
@@ -40,8 +43,12 @@ define(function (require, exports, module) {
     var MENU_BRACKETSGH = "jbalsas.bracketsgh.github";
     
     var CMD_GH_HELP_TOKEN   = "gh_help_token";
+    
     var CMD_GH_ISSUES_LIST  = "gh_issues_list";
     var CMD_GH_ISSUES_NEW   = "gh_issues_new";
+    
+    var CMD_GH_GISTS_NEW_FROM_FILE      = "gh_gists_new_from_file";
+    var CMD_GH_GISTS_NEW_FROM_SELECTION = "gh_gists_new_from_selection";
 
     var nodeConnection;
     
@@ -96,6 +103,59 @@ define(function (require, exports, module) {
         var extensionPath = ExtensionUtils.getModulePath(module, "");
         
         Dialogs.showModalDialogUsingTemplate(_renderTPL(tpl || defaultTPL));
+    }
+    
+    // Creates a new Gist from selection
+    function _createGistFromSelection() {
+        _createGist(true);
+    }
+    
+    // Creates a new Gist
+    function _createGist(fromSelection) {
+        if (currentRepo && currentRepo.user) {
+            var currentDoc      = DocumentManager.getCurrentDocument(),
+                currentEditor   = EditorManager.getActiveEditor(),
+                selection       = currentEditor ? currentEditor.getSelectedText() : '',
+                content         = fromSelection ? selection : currentDoc.getText(),
+                title           = currentDoc.file.name;
+            
+            var dialog = Dialogs.showModalDialogUsingTemplate(
+                Mustache.render(GistDialogNewTPL, {
+                    content: content,
+                    origin: fromSelection ? 'from Selection' : 'from File',
+                    title: title,
+                    user: currentRepo.user
+                })
+            );
+            
+            var secretClass = "secret",
+                $dialogBody = dialog.getElement().find(".modal-body"),
+                $title      = $dialogBody.find(".gh-gist-title").focus(),
+                $message    = $dialogBody.find(".comment-body"),
+                $preview    = $dialogBody.find(".comment-preview");
+            
+            $dialogBody.find('a[data-action="preview"]').on("shown", function (event) {
+                $preview.html(marked($message.val()));
+            });
+            
+            $dialogBody.delegate(".btn", "click", function (event) {
+                var $btn = $(event.currentTarget),
+                    secret = $btn.hasClass(secretClass);
+                
+                $dialogBody.toggleClass("loading");
+    
+                gh.newGist($title.val(), $message.val(), secret).done(function (gist) {
+                    if (gist && gist.html_url) {
+                        dialog.close();
+                        NativeApp.openURLInDefaultBrowser(gist.html_url);
+                    } else {
+                        $dialogBody.toggleClass("error loading");
+                    }
+                });
+            });
+        } else {
+            Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
+        }
     }
     
     // Open the detailed issue dialog
@@ -368,8 +428,14 @@ define(function (require, exports, module) {
         var menu = Menus.getMenu(MENU_BRACKETSGH);
         
         CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
+        CommandManager.register("New Gist from File", CMD_GH_GISTS_NEW_FROM_FILE, _createGist);
+        CommandManager.register("New Gist from Selection", CMD_GH_GISTS_NEW_FROM_SELECTION, _createGistFromSelection);
         
         menu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.FIRST);
+        
+        menu.addMenuDivider();
+        menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_FILE, "");
+        menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_SELECTION, "");
     }
     
     // Initializes UI listeners on the issues panel

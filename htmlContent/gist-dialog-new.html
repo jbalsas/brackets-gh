@@ -1,0 +1,41 @@
+<div class="brackets-gh modal new-gist-dialog">
+    <!-- Header -->
+    <div class="modal-header">
+        <h1 class="dialog-title">New Gist {{origin}}<span class="muted pull-right">{{user}}</span></h1>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+        <div class="alert alert-error">Oops... an error occurred. Please try again later</div>
+
+        <input class="gh-gist-title" placeholder="Title" type="text" value="{{title}}" />
+        
+        <div class="issue-comment-input well">
+            <ul class="nav nav-tabs">
+                <li class="active">
+                    <a href="#write" data-action="write" data-toggle="tab">Write</a>
+                </li>
+                <li>
+                    <a href="#preview" data-action="preview" data-toggle="tab">Preview</a>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <div class="tab-pane active" id="write">
+                    <textarea class="comment-body" rows="10">{{content}}</textarea>
+                </div>
+                <div class="comment-preview tab-pane" id="preview">
+                    
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-toolbar pull-right">
+            <button class="btn secret gh-create">Create Secret Gist</button>
+            <button class="btn primary gh-create">Create Public Gist</button>
+        </div>
+        
+        <div class="muted-bg"></div>
+        <div class="spinner large spin"></div>
+    </div>
+</div>

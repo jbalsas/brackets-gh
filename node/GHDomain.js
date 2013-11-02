@@ -5,6 +5,7 @@
 
     var async       = require("async"),
         base        = require("gh/lib/base"),
+        Gist        = require("gh/lib/cmds/gists").Impl,
         Issue       = require("gh/lib/cmds/issue").Impl,
         User        = require("gh/lib/cmds/user").Impl,
         git         = require("gh/lib/git");
@@ -260,6 +261,35 @@
     }
     
     /**
+     * Creates a new issue
+     * @param {string} title Title of the new gist
+     * @param {string} content Content of the new gist 
+     * @param {boolean} secret If the gist is private
+     * @param {Function} cb Callback function to notify initialization errors
+     */
+    function _cmdNewGist(title, content, secret, cb) {
+        
+        // Normalize parameters
+        if (arguments.length < 4) {
+            arguments[arguments.length - 1]("MISSING PARAMS");
+            return;
+        }
+        
+        var options = {
+            description: '',
+            private: secret
+        };
+        
+        _initHelper(cb, options, function (options) {
+            var gist = new Gist(options);
+            
+            gist.new(title, content, function (err, result) {
+                cb(err, result);
+            });
+        });
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -430,6 +460,34 @@
             false,
             "Gets an issue comments",
             [],
+            []
+        );
+        
+        // Creates a new issue
+        _domainManager.registerCommand(
+            "gh",
+            "newGist",
+            _cmdNewGist,
+            true,
+            "Creates a new gist",
+            [{
+                name: "title",
+                type: "string",
+                description: "Title of the new gist"
+            }, {
+                name: "content",
+                type: "string",
+                description: "Content of the gist"
+            }, {
+                name: "secret",
+                type: "boolean",
+                description: "If the gist is private"
+            }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
             []
         );
     }
