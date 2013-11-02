@@ -272,9 +272,9 @@ define(function (require, exports, module) {
         
         $issuesWrapper.addClass("loading");
 
-        gh.listIssues(state, assignee).done(function (data) {
-            if (data.issues && data.issues.length) {
-                data.issues.forEach(function (issue) {
+        gh.listIssues(state, assignee).done(function (issues) {
+            if (issues && issues.length) {
+                issues.forEach(function (issue) {
                     issue.created_at = moment(issue.created_at).fromNow();
                     
                     var data = {
