@@ -360,7 +360,7 @@
      * @param {string} branch The branch to submit the Pull Request to
      * @param {Function} cb Callback function to notify initialization errors
      */
-    function _cmdSubmitPullRequest(branch, cb) {
+    function _cmdSubmitPullRequest(user, branch, cb) {
         var options = {
             branch: branch
         };
@@ -370,7 +370,7 @@
             
             var pr = new PullRequest(options);
             
-            pr.submit('jbalsas', function (err, result) {
+            pr.submit(user, function (err, result) {
                 cb(err, result);
             });
         });
