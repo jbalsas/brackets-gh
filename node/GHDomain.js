@@ -7,6 +7,7 @@
         base        = require("gh/lib/base"),
         Gist        = require("gh/lib/cmds/gists").Impl,
         Issue       = require("gh/lib/cmds/issue").Impl,
+        PullRequest = require("gh/lib/cmds/pull-request").Impl,
         User        = require("gh/lib/cmds/user").Impl,
         git         = require("gh/lib/git");
 
@@ -290,6 +291,26 @@
     }
     
     /**
+     * Creates a new issue
+     * @param {string} title Title of the new gist
+     * @param {string} content Content of the new gist 
+     * @param {boolean} secret If the gist is private
+     * @param {Function} cb Callback function to notify initialization errors
+     */
+    function _cmdSubmitPullRequest(cb) {
+        var options = {
+        };
+        
+        _initHelper(cb, options, function (options) {
+            var pr = new PullRequest(options);
+            
+            pr.submit('jbalsas', function (err, result) {
+                cb(err, result);
+            });
+        });
+    }
+    
+    /**
      * Initializes the GH domain with its commands.
      * @param {DomainManager} domainManager The DomainManager
      */
@@ -483,6 +504,22 @@
                 type: "boolean",
                 description: "If the gist is private"
             }],
+            [{
+                name: "result",
+                type: "object",
+                description: "The result of the execution"
+            }],
+            []
+        );
+        
+        // Submits a Pull Request
+        _domainManager.registerCommand(
+            "gh",
+            "submitPullRequest",
+            _cmdSubmitPullRequest,
+            true,
+            "Submits a Pull Request",
+            [],
             [{
                 name: "result",
                 type: "object",
