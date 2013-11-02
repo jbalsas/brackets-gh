@@ -110,7 +110,9 @@ define(function (require, exports, module) {
     // Submits a Pull Request
     function _submitPullRequest() {
         gh.submitPullRequest().done(function (pr) {
-            console.log(pr);
+            if (pr && pr.html_url) {
+                NativeApp.openURLInDefaultBrowser(pr.html_url);
+            }
         }).fail(function (err) {
             console.error(err);
         });
