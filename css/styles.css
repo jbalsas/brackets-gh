@@ -100,6 +100,23 @@
     margin-right: -5px;
 }
 
+/* New Pull Request */
+.new-pr-dialog input, .new-issue-dialog textarea {
+    resize: none;
+    width: 55%;
+}
+
+.new-pr-dialog .error .alert.alert-error {
+    display: block;
+}
+
+.new-pr-dialog .alert.alert-error {
+    display: none;
+    background-color: #f2dede;
+    border-color: #eed3d7;
+    color: #b94a48;
+}
+
 /* New Gist */
 .new-gist-dialog input, .new-issue-dialog textarea {
     resize: none;

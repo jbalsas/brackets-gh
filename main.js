@@ -25,7 +25,8 @@ define(function (require, exports, module) {
         IssueDialogViewTPL      = require("text!htmlContent/issue-dialog-view.html"),
         IssuePanelTPL           = require("text!htmlContent/issue-panel.html"),
         IssueParticipantsTPL    = require("text!htmlContent/issue-participants.html"),
-        IssueTableRowTPL        = require("text!htmlContent/issue-table-row.html");
+        IssueTableRowTPL        = require("text!htmlContent/issue-table-row.html"),
+        PullRequestDialogNewTPL = require("text!htmlContent/pr-dialog-new.html");
     
     var ErrorMessageTPL     = "<strong>Ooops... looks like something unexpected happened:</strong> {{status}} {{code}} ({{message}})",
         ErrorNoIssuesTPL    = "We couldn't find any {{state}} issues {{assigned}} on {{user}}/{{repo}}";
@@ -49,11 +50,16 @@ define(function (require, exports, module) {
     
     var CMD_GH_GISTS_NEW_FROM_FILE      = "gh_gists_new_from_file";
     var CMD_GH_GISTS_NEW_FROM_SELECTION = "gh_gists_new_from_selection";
+    
+    var CMD_GH_PR_SUBMIT = "gh_pr_submit";
+    var CMD_GH_PR_SUBMIT_MASTER = "gh_pr_submit_master";
 
     var nodeConnection;
     
     // Current project git repository information
-    var currentRepo = {};
+    var currentRepo     = {},
+        currentForks    = [],
+        localRepo       = {};
     
     // Reference for triggers and listeners
     var $bracketsgh = $(exports);
@@ -105,14 +111,50 @@ define(function (require, exports, module) {
         Dialogs.showModalDialogUsingTemplate(_renderTPL(tpl || defaultTPL));
     }
     
-    // Creates a new Gist from selection
-    function _createGistFromSelection() {
-        _createGist(true);
+    // Submits a Pull Request
+    function _submitPullRequest(user, branch) {
+        gh.submitPullRequest(user, branch).done(function (pr) {
+            if (pr && pr.html_url) {
+                NativeApp.openURLInDefaultBrowser(pr.html_url);
+            }
+        }).fail(function (err) {
+            console.error(err);
+        });
     }
     
+    // Submits a Pull Request to a given user
+    function _submitPullRequest2User() {
+        if (localRepo && localRepo.repo) {
+            var dialog = Dialogs.showModalDialogUsingTemplate(
+                Mustache.render(PullRequestDialogNewTPL, {
+                    collaborators: [{}].concat(currentRepo.collaborators)
+                })
+            );
+
+        } else {
+            Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
+        }
+    }
+
+    // Submits a Pull Request to the master branch
+    function _submitPullRequest2Master() {
+        if (localRepo && localRepo.repo) {
+            var user = localRepo.user,
+                repo = localRepo.repo;
+
+            if (currentRepo && currentRepo.parent) {
+                user = currentRepo.parent.owner.login;
+            }
+
+            _submitPullRequest(user, 'master');
+        } else {
+            Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
+        }
+    }
+
     // Creates a new Gist
     function _createGist(fromSelection) {
-        if (currentRepo && currentRepo.user) {
+        if (localRepo && localRepo.user) {
             var currentDoc      = DocumentManager.getCurrentDocument(),
                 currentEditor   = EditorManager.getActiveEditor(),
                 selection       = currentEditor ? currentEditor.getSelectedText() : '',
@@ -124,7 +166,7 @@ define(function (require, exports, module) {
                     content: content,
                     origin: fromSelection ? 'from Selection' : 'from File',
                     title: title,
-                    user: currentRepo.user
+                    user: localRepo.user
                 })
             );
             
@@ -156,6 +198,11 @@ define(function (require, exports, module) {
         } else {
             Dialogs.showModalDialogUsingTemplate(_renderTPL(ErrorProjectNotFoundTPL));
         }
+    }
+    
+    // Creates a new Gist from selection
+    function _createGistFromSelection() {
+        _createGist(true);
     }
     
     // Open the detailed issue dialog
@@ -262,9 +309,9 @@ define(function (require, exports, module) {
     
     // Starts the new issue workflow
     function _createIssue() {
-        if (currentRepo && currentRepo.repo) {
+        if (localRepo && localRepo.repo) {
             var dialog = Dialogs.showModalDialogUsingTemplate(
-                Mustache.render(IssueDialogNewTPL, currentRepo)
+                Mustache.render(IssueDialogNewTPL, localRepo)
             );
             
             var submitClass = "gh-create",
@@ -353,8 +400,8 @@ define(function (require, exports, module) {
                     {
                         state: state,
                         assigned: (assignee ? "assigned to you" : ""),
-                        user: currentRepo.user,
-                        repo: currentRepo.repo
+                        user: localRepo.user,
+                        repo: localRepo.repo
                     }));
                 
                 $noIssues.removeClass("hide");
@@ -384,7 +431,7 @@ define(function (require, exports, module) {
         if (_isPanelOpen()) {
             $issuesPanel.hide();
         } else {
-            if (currentRepo && currentRepo.repo) {
+            if (localRepo && localRepo.repo) {
                 $issuesPanel.show();
                 _listIssues();
             } else {
@@ -400,14 +447,14 @@ define(function (require, exports, module) {
     // Updates available menu options or commands based on the current project
     // @param {object} event JQuery event triggering the update of the menus
     // @param {string: repo, string: user, ...} data Current repository and user details
-    function _updatePanels(event, data) {
-        var repo    = data.repo ? (data.user + "/" + data.repo) : "unknown",
-            repoURL = data.repo ? ("http://github.com/" + repo) : "#";
+    function _updatePanels(event, localRepo, currentRepo) {
+        var repo    = localRepo.repo ? (localRepo.user + "/" + localRepo.repo) : "unknown",
+            repoURL = localRepo.repo ? ("http://github.com/" + repo) : "#";
         
         $issuesWrapper.find(".title .repo a").html(repo).attr("href", repoURL);
         
         if (_isPanelOpen()) {
-            if (data.repo) {
+            if (localRepo.repo) {
                 _listIssues();
             } else {
                 _resetIssuesUI();
@@ -419,8 +466,15 @@ define(function (require, exports, module) {
     // Updates current project git repository information
     // @param {string: repo, string: user, ...} data Current repository and user details
     function _updateRepo(data) {
-        currentRepo = data;
-        $bracketsgh.trigger("updateRepo", data);
+        localRepo = data;
+
+        gh.getRepo().done(function (data) {
+            currentRepo = data;
+            console.log(data);
+            $bracketsgh.trigger("updateRepo", localRepo, currentRepo);
+        }).fail(function (err) {
+            console.error(err);
+        });
     }
     
     // Register BracketsGH commands
@@ -430,12 +484,18 @@ define(function (require, exports, module) {
         CommandManager.register("New Issue", CMD_GH_ISSUES_NEW, _createIssue);
         CommandManager.register("New Gist from File", CMD_GH_GISTS_NEW_FROM_FILE, _createGist);
         CommandManager.register("New Gist from Selection", CMD_GH_GISTS_NEW_FROM_SELECTION, _createGistFromSelection);
+        CommandManager.register("Submit Pull Request to User", CMD_GH_PR_SUBMIT, _submitPullRequest2User);
+        CommandManager.register("Submit Pull Request to Master", CMD_GH_PR_SUBMIT_MASTER, _submitPullRequest2Master);
         
         menu.addMenuItem(CMD_GH_ISSUES_NEW, "Ctrl-Shift-N", Menus.FIRST);
         
         menu.addMenuDivider();
         menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_FILE, "");
         menu.addMenuItem(CMD_GH_GISTS_NEW_FROM_SELECTION, "");
+        
+        menu.addMenuDivider();
+        menu.addMenuItem(CMD_GH_PR_SUBMIT, "");
+        menu.addMenuItem(CMD_GH_PR_SUBMIT_MASTER, "");
     }
     
     // Initializes UI listeners on the issues panel
@@ -488,7 +548,7 @@ define(function (require, exports, module) {
         ExtensionUtils.loadStyleSheet(module, "css/font-awesome.css");
         ExtensionUtils.loadStyleSheet(module, "third_party/highlight/github.css");
         ExtensionUtils.loadStyleSheet(module, "css/styles.css").done(function () {
-            var $content    = $(".content").append(_renderTPL(IssuePanelTPL, currentRepo));
+            var $content    = $(".content").append(_renderTPL(IssuePanelTPL, localRepo));
             
             $issuesPanel    = $content.find(".gh-issue-panel");
             $issuesWrapper  = $issuesPanel.find(".gh-issues-wrapper");
