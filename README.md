@@ -1,3 +1,5 @@
+[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
+
 # BracketsGH
 
 A Github extension for [Brackets](http://brackets.io/) powered by [NodeGH](http://nodegh.io/)
